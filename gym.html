@@ -127,7 +127,20 @@ select option,optgroup{background:var(--surface2);}
 .custom-form{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:20px;}
 .muscle-toggles{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
 .muscle-toggle{padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:.78rem;transition:all .15s;}
-.muscle-toggle.active{background:rgba(108,99,255,.2);color:var(--accent);border-color:var(--accent);}
+.muscle-toggle.primary{background:rgba(108,99,255,.25);color:var(--accent);border-color:var(--accent);font-weight:700;}
+.muscle-toggle.secondary{background:rgba(251,146,60,.18);color:var(--orange);border-color:var(--orange);}
+.role-badge{display:inline-block;font-size:.6rem;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:4px;vertical-align:middle;}
+.role-badge.p{background:rgba(108,99,255,.25);color:var(--accent);}
+.role-badge.s{background:rgba(251,146,60,.18);color:var(--orange);}
+/* Block info: previous session + PR */
+.ex-info{border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:.78rem;display:none;background:linear-gradient(135deg,rgba(108,99,255,.06),rgba(251,191,36,.04));border:1px solid rgba(108,99,255,.15);}
+.ex-info.visible{display:block;}
+.ex-pr-line{color:var(--gold);font-weight:700;margin-bottom:3px;font-size:.8rem;}
+.ex-last-line{color:var(--muted);line-height:1.5;}
+.set-rm-line{font-size:.68rem;color:var(--accent);opacity:.8;padding:1px 0 4px 39px;}
+/* Award toast */
+.toast.award-pr{border-color:var(--gold);background:linear-gradient(135deg,rgba(251,191,36,.15),var(--surface));font-size:1rem;padding:16px 24px;}
+.toast.award-beat{border-color:var(--green);background:linear-gradient(135deg,rgba(74,222,128,.12),var(--surface));}
 .custom-list{display:flex;flex-direction:column;gap:8px;}
 .custom-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;}
 .custom-item-name{font-weight:600;font-size:.9rem;}
@@ -162,7 +175,7 @@ select option,optgroup{background:var(--surface2);}
 .timer-play{background:var(--accent);color:#fff;} .timer-play:hover{background:#7c74ff;}
 .timer-reset{background:var(--surface2);color:var(--muted);} .timer-reset:hover{color:var(--text);}
 /* Toast */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 20px;color:var(--text);font-size:.88rem;opacity:0;transition:all .3s;z-index:1000;max-width:360px;text-align:center;pointer-events:none;}
+.toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 20px;color:var(--text);font-size:.88rem;opacity:0;transition:all .3s;z-index:1000;max-width:360px;text-align:center;pointer-events:none;white-space:pre-line;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 .toast.pr{border-color:var(--gold);}
 /* Sync status in sidebar */
@@ -188,13 +201,18 @@ select option,optgroup{background:var(--surface2);}
 /* Responsive */
 @media(max-width:860px){
   .app{grid-template-columns:1fr;}
-  .sidebar{flex-direction:row;overflow-x:auto;padding:0;border-right:none;border-bottom:1px solid var(--border);}
+  .sidebar{flex-direction:row;overflow-x:auto;padding:0;border-right:none;border-bottom:1px solid var(--border);scrollbar-width:none;}
+  .sidebar::-webkit-scrollbar{display:none;}
   .logo{display:none;}
   .nav-item{border-left:none;border-bottom:3px solid transparent;padding:13px 12px;white-space:nowrap;font-size:.8rem;}
   .nav-item.active{border-bottom-color:var(--accent);border-left-color:transparent;}
-  .charts-grid,.log-grid,.stat-row,.bw-grid{grid-template-columns:1fr;}
+  .sync-btn,.sync-email,.sidebar-quote{display:none !important;}
+  .charts-grid,.log-grid,.bw-grid{grid-template-columns:1fr;}
+  .stat-row{grid-template-columns:1fr 1fr;}
   .body-layout{grid-template-columns:1fr;}
   .main{padding:14px;}
+  .sets-header span:nth-child(2){font-size:0;}
+  .sets-header span:nth-child(2)::after{content:"KG";font-size:.72rem;}
 }
 </style>
 </head>
@@ -206,7 +224,7 @@ select option,optgroup{background:var(--surface2);}
     <div class="nav-item" onclick="showPage('history')"><span>📋</span> History</div>
     <div class="nav-item" onclick="showPage('progress')"><span>📈</span> Progress</div>
     <div class="nav-item" onclick="showPage('body')"><span>🫀</span> Body Map</div>
-    <div class="nav-item" onclick="showPage('custom')"><span>⚙️</span> Manage</div>
+    <div class="nav-item" onclick="showPage('custom')"><span>⚙️</span> Settings</div>
     <button class="sync-btn" id="sync-btn" onclick="openSyncModal()">
       <div class="sync-dot" id="sync-dot"></div>
       <span id="sync-label">Connect Cloud Sync</span>
@@ -249,7 +267,10 @@ select option,optgroup{background:var(--surface2);}
 
     <!-- ══ HISTORY PAGE ══════════════════════════════════════════ -->
     <div class="page" id="page-history">
-      <h1>History</h1>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+        <h1>History</h1>
+        <button class="btn btn-ghost" onclick="exportCSV()" style="font-size:.78rem;padding:6px 12px;">⬇ Export CSV</button>
+      </div>
       <p class="subtitle">All logged sessions</p>
       <div class="quote-card" id="history-quote" style="display:none;">
         <div class="quote-text" id="history-quote-text"></div>
@@ -293,7 +314,10 @@ select option,optgroup{background:var(--surface2);}
               <option value="maxweight">Max Weight</option><option value="reps">Total Reps</option>
             </select>
           </div>
-          <div class="chart-container"><canvas id="chart-main"></canvas></div>
+          <div style="position:relative;">
+            <div id="chart-nodata" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--muted);font-size:.85rem;background:var(--surface);border-radius:8px;z-index:1;text-align:center;padding:20px;"></div>
+            <div class="chart-container"><canvas id="chart-main"></canvas></div>
+          </div>
         </div>
         <div class="charts-grid">
           <div class="card"><div class="card-title">Weekly Volume by Category</div><div class="chart-container"><canvas id="chart-cat"></canvas></div></div>
@@ -312,6 +336,10 @@ select option,optgroup{background:var(--surface2);}
               </div>
               <div style="margin-bottom:12px;">
                 <label>Weight (kg)</label><input type="number" id="bw-weight" step="0.1" min="20" placeholder="e.g. 75.5">
+              </div>
+              <div style="margin-bottom:12px;">
+                <label>🎯 Target Weight (kg) <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+                <input type="number" id="bw-target" step="0.1" min="20" placeholder="e.g. 70.0" oninput="renderBWChart()">
               </div>
               <button class="btn btn-primary" onclick="saveBW()" style="width:100%;">Save</button>
               <div class="bw-list" id="bw-list"></div>
@@ -498,8 +526,9 @@ select option,optgroup{background:var(--surface2);}
               <option value="cardio">Cardio</option>
             </select>
           </div>
+          <div><label>Rest Time (sec)</label><input type="number" id="cx-rest" min="10" max="600" placeholder="e.g. 90" value="90"></div>
           <div class="full-width">
-            <label>Muscles Targeted</label>
+            <label>Muscles Targeted <span style="font-weight:400;color:var(--muted);">— tap once = <span style="color:var(--accent);">PRIMARY</span>, twice = <span style="color:var(--orange);">SECONDARY</span>, thrice = off</span></label>
             <div class="muscle-toggles" id="cx-muscles"></div>
           </div>
         </div>
@@ -802,59 +831,154 @@ function copySql() {
 
 // ─── EXERCISE DATABASE ───────────────────────────────────────────────────────
 const EXERCISES = [
-  {name:"Bench Press",cat:"weights",muscles:["chest","shoulders","triceps"]},
-  {name:"Incline Bench Press",cat:"weights",muscles:["chest","shoulders"]},
-  {name:"Decline Bench Press",cat:"weights",muscles:["chest","triceps"]},
-  {name:"Squat",cat:"weights",muscles:["quads","glutes","hamstrings"]},
-  {name:"Deadlift",cat:"weights",muscles:["back","hamstrings","glutes","traps"]},
-  {name:"Overhead Press",cat:"weights",muscles:["shoulders","triceps","traps"]},
-  {name:"Barbell Row",cat:"weights",muscles:["back","biceps","traps"]},
-  {name:"Romanian Deadlift",cat:"weights",muscles:["hamstrings","glutes","back"]},
-  {name:"Leg Press",cat:"weights",muscles:["quads","glutes"]},
-  {name:"Lat Pulldown",cat:"weights",muscles:["back","biceps"]},
-  {name:"Cable Row",cat:"weights",muscles:["back","biceps"]},
-  {name:"Dumbbell Curl",cat:"weights",muscles:["biceps"]},
-  {name:"Hammer Curl",cat:"weights",muscles:["biceps","forearms"]},
-  {name:"Tricep Pushdown",cat:"weights",muscles:["triceps"]},
-  {name:"Skull Crusher",cat:"weights",muscles:["triceps"]},
-  {name:"Lateral Raise",cat:"weights",muscles:["shoulders"]},
-  {name:"Face Pull",cat:"weights",muscles:["shoulders","traps","back"]},
-  {name:"Leg Curl",cat:"weights",muscles:["hamstrings"]},
-  {name:"Leg Extension",cat:"weights",muscles:["quads"]},
-  {name:"Calf Raise",cat:"weights",muscles:["calves"]},
-  {name:"Hip Thrust",cat:"weights",muscles:["glutes","hamstrings"]},
-  {name:"Chest Fly",cat:"weights",muscles:["chest"]},
-  {name:"Pull-Up",cat:"calisthenics",muscles:["back","biceps"]},
-  {name:"Push-Up",cat:"calisthenics",muscles:["chest","shoulders","triceps"]},
-  {name:"Dip",cat:"calisthenics",muscles:["triceps","chest","shoulders"]},
-  {name:"Ring Row",cat:"calisthenics",muscles:["back","biceps"]},
-  {name:"Muscle-Up",cat:"calisthenics",muscles:["back","chest","triceps"]},
-  {name:"Handstand Push-Up",cat:"calisthenics",muscles:["shoulders","triceps"]},
-  {name:"L-Sit",cat:"calisthenics",muscles:["abs","hip flexors"]},
-  {name:"Front Lever",cat:"calisthenics",muscles:["back","abs"]},
-  {name:"Planche",cat:"calisthenics",muscles:["chest","shoulders","abs"]},
-  {name:"Pistol Squat",cat:"calisthenics",muscles:["quads","glutes"]},
-  {name:"Nordic Curl",cat:"calisthenics",muscles:["hamstrings"]},
-  {name:"Plank",cat:"core",muscles:["abs","lower back"]},
-  {name:"Hanging Leg Raise",cat:"core",muscles:["abs","hip flexors"]},
-  {name:"Ab Wheel Rollout",cat:"core",muscles:["abs","lower back"]},
-  {name:"Cable Crunch",cat:"core",muscles:["abs"]},
-  {name:"Russian Twist",cat:"core",muscles:["abs"]},
-  {name:"Dead Bug",cat:"core",muscles:["abs","lower back"]},
-  {name:"Pallof Press",cat:"core",muscles:["abs","lower back"]},
-  {name:"Hollow Body Hold",cat:"core",muscles:["abs"]},
-  {name:"Side Plank",cat:"core",muscles:["abs"]},
-  {name:"Dragon Flag",cat:"core",muscles:["abs"]},
-  {name:"Running",cat:"cardio",muscles:["calves","quads","hamstrings"]},
-  {name:"Cycling",cat:"cardio",muscles:["quads","calves"]},
-  {name:"Rowing Machine",cat:"cardio",muscles:["back","quads","calves"]},
-  {name:"Jump Rope",cat:"cardio",muscles:["calves","shoulders"]},
-  {name:"Burpees",cat:"cardio",muscles:["chest","quads","calves"]},
-  {name:"Box Jump",cat:"cardio",muscles:["quads","calves","glutes"]},
-  {name:"Battle Ropes",cat:"cardio",muscles:["shoulders","abs"]},
-  {name:"Swimming",cat:"cardio",muscles:["back","chest","shoulders"]},
-  {name:"Stair Climber",cat:"cardio",muscles:["quads","glutes","calves"]},
+  // ── Weights ──────────────────────────────────────────────────────────────
+  // Bench Press: pec major primary; ant.delt & triceps secondary
+  {name:"Bench Press",         cat:"weights",     muscles:["chest","shoulders","triceps"]},
+  // Incline: upper pec primary; ant.delt more involved than flat; triceps secondary
+  {name:"Incline Bench Press", cat:"weights",     muscles:["chest","shoulders","triceps"]},
+  // Decline: lower pec primary; triceps more than incline; ant.delt minimal
+  {name:"Decline Bench Press", cat:"weights",     muscles:["chest","triceps","shoulders"]},
+  // Squat: quads & glutes co-primary; hamstrings & erectors secondary
+  {name:"Squat",               cat:"weights",     muscles:["quads","glutes","hamstrings","lower back"]},
+  // Deadlift: erectors & glutes co-primary; hamstrings, traps secondary; forearms grip
+  {name:"Deadlift",            cat:"weights",     muscles:["back","glutes","hamstrings","traps","forearms"]},
+  // OHP: ant./lat.delt primary; triceps & upper traps secondary
+  {name:"Overhead Press",      cat:"weights",     muscles:["shoulders","triceps","traps"]},
+  // Barbell Row: lats & rhomboids primary; traps & biceps secondary; rear delt tertiary
+  {name:"Barbell Row",         cat:"weights",     muscles:["back","traps","biceps","shoulders"]},
+  // RDL: hamstrings primary; glutes secondary; erectors stabiliser
+  {name:"Romanian Deadlift",   cat:"weights",     muscles:["hamstrings","glutes","lower back"]},
+  // Leg Press: quads primary; glutes & hamstrings secondary
+  {name:"Leg Press",           cat:"weights",     muscles:["quads","glutes","hamstrings"]},
+  // Lat Pulldown: lats primary; biceps & rear delt secondary
+  {name:"Lat Pulldown",        cat:"weights",     muscles:["back","biceps","shoulders"]},
+  // Cable Row: lats & rhomboids primary; biceps secondary; rear delt tertiary
+  {name:"Cable Row",           cat:"weights",     muscles:["back","biceps","shoulders"]},
+  // Curl: biceps primary; forearms (brachialis/brachioradialis) secondary
+  {name:"Dumbbell Curl",       cat:"weights",     muscles:["biceps","forearms"]},
+  // Hammer: brachialis & brachioradialis co-primary with biceps; forearms dominant
+  {name:"Hammer Curl",         cat:"weights",     muscles:["biceps","forearms"]},
+  // Pushdown: all triceps heads primary; forearms stabilise
+  {name:"Tricep Pushdown",     cat:"weights",     muscles:["triceps","forearms"]},
+  // Skull Crusher: long & medial head primary; forearms stabilise
+  {name:"Skull Crusher",       cat:"weights",     muscles:["triceps","forearms"]},
+  // Lateral Raise: lateral delt primary; upper traps secondary
+  {name:"Lateral Raise",       cat:"weights",     muscles:["shoulders","traps"]},
+  // Face Pull: rear delt primary; mid/lower traps secondary; external rotators
+  {name:"Face Pull",           cat:"weights",     muscles:["shoulders","traps","back"]},
+  // Leg Curl: hamstrings primary; gastrocnemius (calves) secondary
+  {name:"Leg Curl",            cat:"weights",     muscles:["hamstrings","calves"]},
+  // Leg Extension: quads only
+  {name:"Leg Extension",       cat:"weights",     muscles:["quads"]},
+  // Calf Raise: gastrocnemius/soleus primary
+  {name:"Calf Raise",          cat:"weights",     muscles:["calves"]},
+  // Hip Thrust: glutes primary (max activation); hamstrings secondary; erectors stabilise
+  {name:"Hip Thrust",          cat:"weights",     muscles:["glutes","hamstrings","lower back"]},
+  // Chest Fly: pec major primary (stretch-focused); ant.delt secondary
+  {name:"Chest Fly",           cat:"weights",     muscles:["chest","shoulders"]},
+
+  // ── Calisthenics ─────────────────────────────────────────────────────────
+  // Pull-Up: lats primary; biceps secondary; rear delt tertiary
+  {name:"Pull-Up",             cat:"calisthenics",muscles:["back","biceps","shoulders"]},
+  // Push-Up: pec major primary; triceps secondary; ant.delt tertiary
+  {name:"Push-Up",             cat:"calisthenics",muscles:["chest","triceps","shoulders"]},
+  // Dip (upright): triceps primary; lower pec secondary; ant.delt tertiary
+  {name:"Dip",                 cat:"calisthenics",muscles:["triceps","chest","shoulders"]},
+  // Ring Row: lats & rhomboids primary; biceps secondary; rear delt tertiary
+  {name:"Ring Row",            cat:"calisthenics",muscles:["back","biceps","shoulders"]},
+  // Muscle-Up: lats (pull) & pec/triceps (push) co-primary; biceps secondary
+  {name:"Muscle-Up",          cat:"calisthenics",muscles:["back","chest","biceps","triceps"]},
+  // HSPU: ant./lat.delt primary; triceps secondary; upper traps tertiary
+  {name:"Handstand Push-Up",   cat:"calisthenics",muscles:["shoulders","triceps","traps"]},
+  // L-Sit: hip flexors & abs co-primary; triceps (support) secondary
+  {name:"L-Sit",               cat:"calisthenics",muscles:["abs","hip flexors","triceps","shoulders"]},
+  // Front Lever: lats primary; abs secondary; rear delt & biceps tertiary
+  {name:"Front Lever",         cat:"calisthenics",muscles:["back","abs","shoulders"]},
+  // Planche: ant.delt primary; pec secondary; abs & triceps tertiary
+  {name:"Planche",             cat:"calisthenics",muscles:["shoulders","chest","abs","triceps"]},
+  // Pistol Squat: quads primary; glutes secondary; hamstrings & calves tertiary
+  {name:"Pistol Squat",        cat:"calisthenics",muscles:["quads","glutes","hamstrings","calves"]},
+  // Nordic Curl: hamstrings primary (eccentric); glutes secondary
+  {name:"Nordic Curl",         cat:"calisthenics",muscles:["hamstrings","glutes"]},
+
+  // ── Core ─────────────────────────────────────────────────────────────────
+  // Plank: rectus abdominis primary; erectors & glutes secondary; shoulders stabilise
+  {name:"Plank",               cat:"core",        muscles:["abs","lower back","glutes","shoulders"]},
+  // Hanging Leg Raise: abs primary; hip flexors secondary
+  {name:"Hanging Leg Raise",   cat:"core",        muscles:["abs","hip flexors"]},
+  // Ab Wheel: abs primary; erectors secondary; lats & shoulders tertiary
+  {name:"Ab Wheel Rollout",    cat:"core",        muscles:["abs","lower back","shoulders","triceps"]},
+  // Cable Crunch: rectus abdominis primary
+  {name:"Cable Crunch",        cat:"core",        muscles:["abs"]},
+  // Russian Twist: obliques primary; hip flexors secondary
+  {name:"Russian Twist",       cat:"core",        muscles:["abs","hip flexors"]},
+  // Dead Bug: deep core/TVA primary; erectors secondary; hip flexors tertiary
+  {name:"Dead Bug",            cat:"core",        muscles:["abs","lower back","hip flexors"]},
+  // Pallof Press: obliques & TVA primary; erectors secondary; shoulders stabilise
+  {name:"Pallof Press",        cat:"core",        muscles:["abs","lower back","shoulders"]},
+  // Hollow Body: abs & hip flexors co-primary
+  {name:"Hollow Body Hold",    cat:"core",        muscles:["abs","hip flexors"]},
+  // Side Plank: obliques primary; glutes & erectors secondary; shoulders stabilise
+  {name:"Side Plank",          cat:"core",        muscles:["abs","lower back","glutes","shoulders"]},
+  // Dragon Flag: abs primary; erectors secondary; hip flexors tertiary
+  {name:"Dragon Flag",         cat:"core",        muscles:["abs","lower back","hip flexors"]},
+
+  // ── Cardio ───────────────────────────────────────────────────────────────
+  // Running: quads & hamstrings co-primary; glutes secondary; calves tertiary
+  {name:"Running",             cat:"cardio",      muscles:["quads","hamstrings","glutes","calves"]},
+  // Cycling: quads primary; hamstrings & glutes secondary; calves tertiary
+  {name:"Cycling",             cat:"cardio",      muscles:["quads","hamstrings","glutes","calves"]},
+  // Rowing: back & quads co-primary (drive phase); biceps & hamstrings secondary
+  {name:"Rowing Machine",      cat:"cardio",      muscles:["back","quads","biceps","hamstrings","calves"]},
+  // Jump Rope: calves primary; quads & shoulders secondary
+  {name:"Jump Rope",           cat:"cardio",      muscles:["calves","quads","shoulders"]},
+  // Burpees: quads & glutes primary (jump/squat); chest & triceps secondary (push-up)
+  {name:"Burpees",             cat:"cardio",      muscles:["quads","glutes","chest","triceps","shoulders","abs"]},
+  // Box Jump: quads & glutes co-primary; calves secondary; hamstrings tertiary
+  {name:"Box Jump",            cat:"cardio",      muscles:["quads","glutes","calves","hamstrings"]},
+  // Battle Ropes: shoulders primary; abs & arms secondary
+  {name:"Battle Ropes",        cat:"cardio",      muscles:["shoulders","abs","biceps","triceps"]},
+  // Swimming: lats & shoulders co-primary; chest & triceps secondary
+  {name:"Swimming",            cat:"cardio",      muscles:["back","shoulders","chest","triceps"]},
+  // Stair Climber: quads & glutes co-primary; hamstrings secondary; calves tertiary
+  {name:"Stair Climber",       cat:"cardio",      muscles:["quads","glutes","hamstrings","calves"]},
 ];
+
+// ── Rest times per exercise (seconds) ──────────────────────────────────────
+// Sources: NSCA guidelines, Schoenfeld (2010), Kraemer & Ratamess (2004)
+// Strength/heavy compound: 3-5 min | Hypertrophy compound: 2-3 min
+// Isolation: 60-90s | Core: 45-60s | Cardio: 30-60s
+const REST_TIMES = {
+  // Heavy compounds (3 min)
+  "Squat":180,"Deadlift":180,"Bench Press":180,"Overhead Press":180,
+  "Barbell Row":180,"Romanian Deadlift":150,
+  // Moderate compounds (2 min)
+  "Incline Bench Press":120,"Decline Bench Press":120,"Leg Press":120,
+  "Lat Pulldown":120,"Cable Row":120,"Hip Thrust":120,
+  // Calisthenics compounds
+  "Pull-Up":120,"Dip":120,"Ring Row":120,"Muscle-Up":150,
+  "Handstand Push-Up":150,"Front Lever":150,"Planche":150,
+  "Pistol Squat":120,"Nordic Curl":120,
+  // Isolation (60-90s)
+  "Dumbbell Curl":60,"Hammer Curl":60,"Tricep Pushdown":60,
+  "Skull Crusher":75,"Lateral Raise":60,"Face Pull":60,
+  "Leg Curl":60,"Leg Extension":60,"Calf Raise":60,
+  "Chest Fly":60,"L-Sit":60,
+  // Core (45-60s)
+  "Plank":45,"Hanging Leg Raise":60,"Ab Wheel Rollout":60,
+  "Cable Crunch":45,"Russian Twist":45,"Dead Bug":45,
+  "Pallof Press":45,"Hollow Body Hold":45,"Side Plank":45,
+  "Dragon Flag":60,
+  // Cardio (30-60s)
+  "Running":30,"Cycling":30,"Rowing Machine":30,"Jump Rope":30,
+  "Burpees":60,"Box Jump":60,"Battle Ropes":45,
+  "Swimming":30,"Stair Climber":30,
+};
+function getRestTime(exerciseName) {
+  const custom = customExercises.find(e => e.name === exerciseName);
+  if (custom?.restTime) return custom.restTime;
+  return REST_TIMES[exerciseName] || 90;
+}
 
 const MUSCLE_SVG = {
   chest:["f-chest-l","f-chest-r"],
@@ -973,18 +1097,20 @@ function addBlock(scroll = true) {
   div.innerHTML = `
     <div class="ex-block-header">
       <div class="ex-block-num">${blockCount}</div>
-      <select style="max-width:110px;padding:7px 10px;font-size:.82rem;" onchange="filterBlockEx('${bid}',this.value)">
+      <select style="max-width:90px;padding:7px 8px;font-size:.8rem;" onchange="filterBlockEx('${bid}',this.value)">
         <option value="">All</option>
         <option value="weights">Weights</option>
         <option value="calisthenics">Calisthenics</option>
         <option value="core">Core</option>
         <option value="cardio">Cardio</option>
       </select>
-      <select id="exname-${bid}" style="flex:1;padding:7px 10px;font-size:.88rem;"></select>
+      <input type="text" id="exsearch-${bid}" placeholder="🔍 Search..." style="max-width:100px;padding:7px 8px;font-size:.8rem;" oninput="searchBlockEx('${bid}',this.value)">
+      <select id="exname-${bid}" style="flex:1;padding:7px 10px;font-size:.88rem;" onchange="updateBlockInfo('${bid}')"></select>
       <button class="icon-btn del-btn" onclick="removeBlock('${bid}')" title="Remove exercise">✕</button>
     </div>
+    <div class="ex-info" id="info-${bid}"></div>
     <div class="sets-header" style="margin-top:4px;">
-      <span>#</span><span>Weight kg</span><span>Reps</span><span>Notes</span><span style="text-align:center;">Drop</span><span></span>
+      <span>#</span><span>Weight kg</span><span>Reps</span><span>Notes</span><span style="text-align:center;" title="Drop Set">↓DS</span><span></span>
     </div>
     <div id="sets-body-${bid}"></div>
     <button class="btn-add-set" onclick="addSetToBlock('${bid}')">+ Add Set</button>`;
@@ -1022,28 +1148,118 @@ function populateBlockEx(bid, filter = "") {
     sel.appendChild(g);
   });
 }
-function filterBlockEx(bid, cat) { populateBlockEx(bid, cat); }
+function updateBlockInfo(bid) {
+  const exName = document.getElementById(`exname-${bid}`)?.value;
+  const info = document.getElementById(`info-${bid}`);
+  if (!info) return;
+  if (!exName) { info.classList.remove("visible"); info.innerHTML=""; return; }
+
+  const all = workouts.filter(w => w.exercise === exName);
+  if (!all.length) { info.classList.remove("visible"); info.innerHTML=""; return; }
+
+  // PR
+  const pr = Math.max(...all.flatMap(w => w.sets.filter(s=>!s.dropSet).map(s=>calc1RM(s.weight,s.reps))), 0);
+  const prDate = all.filter(w => w.sets.some(s=>!s.dropSet&&Math.abs(calc1RM(s.weight,s.reps)-pr)<0.01))
+                    .map(w=>w.date).sort().pop();
+
+  // Last session (most recent date)
+  const lastDate = [...new Set(all.map(w=>w.date))].sort().pop();
+  const lastSets = all.filter(w=>w.date===lastDate).flatMap(w=>w.sets);
+  const lastStr  = lastSets.map(s=>(s.dropSet?"↓":"")+s.weight+"×"+s.reps).join("  ");
+  const restSec  = getRestTime(exName);
+  const restStr  = restSec >= 60 ? `${Math.floor(restSec/60)}m${restSec%60?""+restSec%60+"s":""}` : `${restSec}s`;
+
+  info.innerHTML = `
+    ${pr>0?`<div class="ex-pr-line">🏆 PR: ${pr.toFixed(1)} kg 1RM${prDate?" — "+formatDate(prDate,true):""}</div>`:""}
+    <div class="ex-last-line">📅 Last (${formatDate(lastDate,true)}): ${lastStr}</div>
+    <div style="font-size:.7rem;color:rgba(108,99,255,.6);margin-top:3px;">⏱ Rest: ${restStr}</div>`;
+  info.classList.add("visible");
+}
+
+function filterBlockEx(bid, cat) {
+  document.getElementById(`exsearch-${bid}`).value = "";
+  populateBlockEx(bid, cat);
+}
+function searchBlockEx(bid, query) {
+  const sel = document.getElementById(`exname-${bid}`);
+  if (!sel) return;
+  const cur = sel.value;
+  const q = query.toLowerCase();
+  sel.innerHTML = '<option value="">— Select exercise —</option>';
+  const list = q
+    ? getAllExercises().filter(e => e.name.toLowerCase().includes(q))
+    : getAllExercises();
+  [...new Set(list.map(e => e.cat))].forEach(cat => {
+    const g = document.createElement("optgroup");
+    g.label = cat.charAt(0).toUpperCase() + cat.slice(1);
+    list.filter(e => e.cat === cat).forEach(ex => {
+      const o = document.createElement("option");
+      o.value = ex.name; o.textContent = ex.name;
+      if (ex.name === cur) o.selected = true;
+      g.appendChild(o);
+    });
+    sel.appendChild(g);
+  });
+}
 
 function addSetToBlock(bid) {
+  const exSel = document.getElementById(`exname-${bid}`);
+  if (exSel && !exSel.value && blockSetCounts[bid] > 0) {
+    showToast("Select an exercise first"); return;
+  }
   blockSetCounts[bid] = (blockSetCounts[bid] || 0) + 1;
   const sn = blockSetCounts[bid];
   const sid = `${bid}_s${sn}`;
   const body = document.getElementById(`sets-body-${bid}`);
+  // Carry over weight from previous set
+  const prevW = sn > 1 ? (document.getElementById(`w-${bid}_s${sn-1}`)?.value || "") : "";
   const row = document.createElement("div");
   row.className = "set-row"; row.id = `set-${sid}`; row.dataset.drop = "0";
   row.innerHTML = `
     <div class="set-num">${sn}</div>
-    <input type="number" min="0" step="0.5" placeholder="0" id="w-${sid}">
+    <input type="number" min="0" step="0.5" placeholder="0" id="w-${sid}" value="${prevW}">
     <input type="number" min="1" step="1"   placeholder="0" id="r-${sid}">
     <input type="text" placeholder="note" id="n-${sid}">
     <button class="icon-btn ds-btn" id="ds-${sid}" onclick="toggleDSBlock('${sid}')" title="Drop set">DS</button>
     <button class="icon-btn del-btn" onclick="this.closest('.set-row').remove()">✕</button>`;
   body.appendChild(row);
 
-  const repsEl = document.getElementById(`r-${sid}`);
-  const fire = () => { if ((parseInt(repsEl.value)||0) > 0) { openTimer(); resetTimer(); startTimer(); } };
+  const weightEl = document.getElementById(`w-${sid}`);
+  const repsEl   = document.getElementById(`r-${sid}`);
+  const noteEl   = document.getElementById(`n-${sid}`);
+
+  const fire = () => {
+    const w = parseFloat(weightEl.value) || 0;
+    const r = parseInt(repsEl.value) || 0;
+    if (r > 0) {
+      // Show 1RM if weight entered
+      if (w > 0) showSetRM(sid, calc1RM(w, r));
+      // Set exercise-specific rest time
+      const exName = document.getElementById(`exname-${bid}`)?.value;
+      const rest = getRestTime(exName);
+      timerTotal = timerLeft = rest;
+      document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
+      updateTimerUI();
+      openTimer(); startTimer();
+    }
+  };
+
+  // Enter key navigation: weight → reps → note → fire+blur
+  weightEl.addEventListener("keydown", e => { if(e.key==="Enter"){e.preventDefault(); repsEl.focus(); repsEl.select();} });
+  repsEl.addEventListener("keydown",   e => { if(e.key==="Enter"){e.preventDefault(); noteEl.focus();} });
+  noteEl.addEventListener("keydown",   e => { if(e.key==="Enter"){e.preventDefault(); fire(); noteEl.blur();} });
   repsEl.addEventListener("blur", fire);
-  repsEl.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); fire(); } });
+}
+
+function showSetRM(sid, rm) {
+  const existing = document.getElementById(`rm-${sid}`);
+  if (existing) { existing.textContent = `≈ ${rm.toFixed(1)} kg 1RM`; return; }
+  const row = document.getElementById(`set-${sid}`);
+  if (!row) return;
+  const div = document.createElement("div");
+  div.className = "set-rm-line"; div.id = `rm-${sid}`;
+  div.textContent = `≈ ${rm.toFixed(1)} kg 1RM`;
+  row.after(div);
 }
 
 function toggleDSBlock(sid) {
@@ -1083,19 +1299,53 @@ function saveSession() {
   const date = document.getElementById("log-date").value;
   const sessionId = "sess_" + Date.now();
   const prsBefore = computeAllPRs();
+
+  // Capture previous session best per exercise BEFORE saving
+  const prevBest = {};
+  blocks.forEach(item => {
+    const prev = workouts.filter(w => w.exercise === item.exercise);
+    if (prev.length) {
+      prevBest[item.exercise] = Math.max(...prev.flatMap(w =>
+        w.sets.filter(s=>!s.dropSet).map(s=>calc1RM(s.weight,s.reps))), 0);
+    }
+  });
+
   blocks.forEach(item => { workouts.push({ id:Date.now()+Math.random(), sessionId, date, ...item }); });
   saveAll();
   const prsAfter = computeAllPRs();
-  const newPRs = blocks
-    .map(item => ({ exercise:item.exercise, new1rm:prsAfter[item.exercise], old1rm:prsBefore[item.exercise]||0 }))
-    .filter(p => p.new1rm > p.old1rm + 0.01);
-  // Reset to one empty block
+
+  // Reset blocks
+  const mainEl = document.querySelector(".main");
+  const scrollY = mainEl ? mainEl.scrollTop : 0;
   document.getElementById("session-blocks").innerHTML = "";
   blockCount = 0; addBlock(false);
-  if (newPRs.length) {
-    showToast(newPRs.map(p=>`🏆 PR! ${p.exercise}: ${p.new1rm.toFixed(1)}kg 1RM`).join("\n"), true);
+  if (mainEl) requestAnimationFrame(() => mainEl.scrollTop = scrollY);
+
+  // Awards: PR > previous session > nothing
+  const prBeaten = blocks
+    .map(item => ({ exercise:item.exercise, new1rm:prsAfter[item.exercise], old1rm:prsBefore[item.exercise]||0 }))
+    .filter(p => p.new1rm > p.old1rm + 0.01);
+  const prevBeaten = blocks
+    .filter(item => !prBeaten.find(p=>p.exercise===item.exercise))
+    .filter(item => {
+      if (prevBest[item.exercise] === undefined) return false;
+      const cur = Math.max(...item.sets.filter(s=>!s.dropSet).map(s=>calc1RM(s.weight,s.reps)), 0);
+      return cur > prevBest[item.exercise] + 0.01;
+    });
+
+  if (prBeaten.length) {
+    playMotivationSound();
+    showToast(
+      "🏆🎊 NEW PR! 🎊🏆\n" + prBeaten.map(p=>`${p.exercise}: ${p.new1rm.toFixed(1)}kg 1RM`).join("\n"),
+      "award-pr", 5000
+    );
+  } else if (prevBeaten.length) {
+    showToast(
+      "💪 Crushed your last session!\n" + prevBeaten.map(i=>`${i.exercise}`).join(", "),
+      "award-beat", 3500
+    );
   } else {
-    showToast(`Session saved — ${blocks.length} exercise${blocks.length>1?"s":""}!`);
+    showToast(`✅ Session saved — ${blocks.length} exercise${blocks.length>1?"s":""}!`);
   }
 }
 
@@ -1227,6 +1477,18 @@ function renderPerfChart() {
   const mLabels = {"1rm":"Est. 1RM (kg)",volume:"Volume (kg)",maxweight:"Max Weight (kg)",reps:"Total Reps"};
   const mColors = {"1rm":"#6c63ff",volume:"#fb923c",maxweight:"#4ade80",reps:"#f87171"};
 
+  const noDataEl = document.getElementById("chart-nodata");
+  if (!exName) {
+    if (noDataEl) noDataEl.textContent = "← Select an exercise to view progress";
+    if (noDataEl) { noDataEl.textContent = "← Select an exercise to view progress"; noDataEl.style.display = "flex"; }
+    if (chartMain) { chartMain.destroy(); chartMain = null; }
+  } else if (dates.length < 2) {
+    if (noDataEl) { noDataEl.textContent = dates.length === 0 ? "No data for this exercise yet." : "Log at least 2 sessions to see a trend."; noDataEl.style.display = "flex"; }
+    if (chartMain) { chartMain.destroy(); chartMain = null; }
+  } else {
+    if (noDataEl) noDataEl.style.display = "none";
+  }
+
   if (chartMain) chartMain.destroy();
   chartMain = new Chart(document.getElementById("chart-main").getContext("2d"), {
     type:"line",
@@ -1316,16 +1578,20 @@ function deleteBW(date){
 }
 function renderBWChart(){
   const recent=bodyWeights.slice(-90);
+  const target=parseFloat(document.getElementById("bw-target")?.value)||null;
+  const datasets=[{label:"Body Weight (kg)",data:recent.map(e=>e.weight),
+    borderColor:"#4ade80",backgroundColor:"#4ade8022",fill:true,tension:.35,
+    pointRadius:3,pointBackgroundColor:"#4ade80"}];
+  if(target&&recent.length){
+    datasets.push({label:"Target (kg)",data:recent.map(()=>target),
+      borderColor:"#fbbf2488",borderDash:[6,4],borderWidth:2,
+      pointRadius:0,fill:false,tension:0});
+  }
   if(chartBW) chartBW.destroy();
   chartBW=new Chart(document.getElementById("chart-bw").getContext("2d"),{
     type:"line",
-    data:{
-      labels:recent.map(e=>formatDate(e.date,true)),
-      datasets:[{label:"Body Weight (kg)",data:recent.map(e=>e.weight),
-        borderColor:"#4ade80",backgroundColor:"#4ade8022",fill:true,tension:.35,
-        pointRadius:3,pointBackgroundColor:"#4ade80"}]
-    },
-    options:chartOpts("Weight (kg)")
+    data:{labels:recent.map(e=>formatDate(e.date,true)),datasets},
+    options:{...chartOpts("Weight (kg)"),plugins:{legend:{display:!!target,labels:{color:"#888899",font:{size:11}}}}}
   });
 }
 
@@ -1416,24 +1682,54 @@ function setBodyRange(days,el){
   document.querySelectorAll(".range-btn").forEach(b=>b.classList.remove("active")); el.classList.add("active");
   renderBodyMap();
 }
+// Returns contribution weight based on muscle index in exercise definition
+// Primary (index 0)=1.0, Secondary (index 1)=0.5, Tertiary (index 2+)=0.25
+function getMuscleWeight(exerciseName, muscle) {
+  const ex = getAllExercises().find(e => e.name === exerciseName);
+  if (!ex) return 1.0;
+  const idx = ex.muscles.indexOf(muscle);
+  if (idx < 0) return 1.0;
+  if (idx === 0) return 1.0;
+  if (idx === 1) return 0.5;
+  return 0.25;
+}
+
 function renderBodyMap(){
   const cutoff=new Date(Date.now()-bodyRange*86400000).toISOString().split("T")[0];
-  const muscleSets={};
-  workouts.filter(w=>w.date>=cutoff).forEach(w=>w.muscles.forEach(m=>{muscleSets[m]=(muscleSets[m]||0)+w.sets.length;}));
-  const maxSets=Math.max(1,...Object.values(muscleSets));
+  const muscleScore={};  // weighted score for heatmap
+  const muscleSets={};   // raw sets for display
+  const muscleRole={};   // { primary: N, total: N } for P/S badge
+
+  workouts.filter(w=>w.date>=cutoff).forEach(w=>{
+    w.muscles.forEach((m, idx)=>{
+      const w8 = getMuscleWeight(w.exercise, m);
+      muscleScore[m]=(muscleScore[m]||0) + w.sets.length * w8;
+      muscleSets[m]=(muscleSets[m]||0) + w.sets.length;
+      if(!muscleRole[m]) muscleRole[m]={primary:0,total:0};
+      muscleRole[m].total += w.sets.length;
+      if(idx===0) muscleRole[m].primary += w.sets.length;
+    });
+  });
+
+  const maxScore=Math.max(1,...Object.values(muscleScore));
   Object.values(MUSCLE_SVG).flat().forEach(id=>{const el=document.getElementById(id);if(el)el.style.fill="#2a2a38";});
-  Object.entries(muscleSets).forEach(([muscle,sets])=>{
-    const color=heatColor(sets/maxSets);
+  Object.entries(muscleScore).forEach(([muscle,score])=>{
+    const color=heatColor(score/maxScore);
     (MUSCLE_SVG[muscle]||[]).forEach(id=>{const el=document.getElementById(id);if(el)el.style.fill=color;});
   });
+
   const all=Object.keys(MUSCLE_LABELS);
-  const sorted=[...all.filter(m=>muscleSets[m]).sort((a,b)=>muscleSets[b]-muscleSets[a]),...all.filter(m=>!muscleSets[m])];
+  const sorted=[...all.filter(m=>muscleScore[m]).sort((a,b)=>muscleScore[b]-muscleScore[a]),...all.filter(m=>!muscleScore[m])];
   document.getElementById("muscle-legend").innerHTML=sorted.map(m=>{
-    const s=muscleSets[m]||0;
+    const score=muscleScore[m]||0;
+    const sets=muscleSets[m]||0;
+    const role=muscleRole[m];
+    const isPrimary=role && role.primary/role.total >= 0.5;
+    const badge=sets>0?`<span class="role-badge ${isPrimary?'p':'s'}">${isPrimary?'PRIMARY':'SUB'}</span>`:'';
     return`<div class="legend-item">
-      <div class="legend-dot" style="background:${s>0?heatColor(s/maxSets):"#2a2a38"};border:1px solid #3a3a50;"></div>
-      <div class="legend-name">${MUSCLE_LABELS[m]}</div>
-      <div class="legend-sets">${s>0?s+" set"+(s>1?"s":""):"—"}</div>
+      <div class="legend-dot" style="background:${score>0?heatColor(score/maxScore):"#2a2a38"};border:1px solid #3a3a50;"></div>
+      <div class="legend-name">${MUSCLE_LABELS[m]}${badge}</div>
+      <div class="legend-sets">${sets>0?sets+" set"+(sets>1?"s":""):"—"}</div>
     </div>`;
   }).join("");
 }
@@ -1452,23 +1748,43 @@ function lerpColor(a,b,t){
 // ─── CUSTOM EXERCISES ────────────────────────────────────────────────────────
 function buildMuscleToggles(){
   document.getElementById("cx-muscles").innerHTML=Object.keys(MUSCLE_LABELS).map(m=>
-    `<button class="muscle-toggle" data-muscle="${m}" onclick="this.classList.toggle('active')">${MUSCLE_LABELS[m]}</button>`
+    `<button class="muscle-toggle" data-muscle="${m}" data-state="0" onclick="cycleMuscleTgl(this)">${MUSCLE_LABELS[m]}</button>`
   ).join("");
+}
+function cycleMuscleTgl(btn){
+  const state=(parseInt(btn.dataset.state||"0")+1)%3;
+  btn.dataset.state=state;
+  btn.classList.remove("primary","secondary");
+  const base=MUSCLE_LABELS[btn.dataset.muscle];
+  if(state===1){btn.classList.add("primary"); btn.textContent=base+" ①";}
+  else if(state===2){btn.classList.add("secondary"); btn.textContent=base+" ②";}
+  else{btn.textContent=base;}
+}
+function resetMuscleToggles(){
+  document.querySelectorAll(".muscle-toggle").forEach(b=>{
+    b.classList.remove("primary","secondary");
+    b.dataset.state="0";
+    b.textContent=MUSCLE_LABELS[b.dataset.muscle];
+  });
 }
 function addCustomExercise(){
   const name=document.getElementById("cx-name").value.trim();
   if(!name){showToast("Enter exercise name");return;}
   if(getAllExercises().find(e=>e.name.toLowerCase()===name.toLowerCase())){showToast("Exercise already exists");return;}
   const cat=document.getElementById("cx-cat").value;
-  const muscles=[...document.querySelectorAll(".muscle-toggle.active")].map(b=>b.dataset.muscle);
-  if(!muscles.length){showToast("Select at least one muscle");return;}
-  customExercises.push({name,cat,muscles,custom:true});
+  // Primary first (state=1), then secondary (state=2)
+  const primary=[...document.querySelectorAll(".muscle-toggle[data-state='1']")].map(b=>b.dataset.muscle);
+  const secondary=[...document.querySelectorAll(".muscle-toggle[data-state='2']")].map(b=>b.dataset.muscle);
+  const muscles=[...primary,...secondary];
+  if(!muscles.length){showToast("Select at least one muscle (tap once for PRIMARY, twice for SECONDARY)");return;}
+  const restTime = parseInt(document.getElementById("cx-rest").value) || 90;
+  customExercises.push({name,cat,muscles,restTime,custom:true});
   saveAll();
   document.getElementById("cx-name").value="";
-  document.querySelectorAll(".muscle-toggle").forEach(b=>b.classList.remove("active"));
+  resetMuscleToggles();
   populateExerciseSelect();
   renderCustomList();
-  showToast(`Added: ${name}`);
+  showToast(`Added: ${name} (${primary.length} primary, ${secondary.length} secondary)`);
 }
 function deleteCustomExercise(name){
   customExercises=customExercises.filter(e=>e.name!==name);
@@ -1481,7 +1797,7 @@ function renderCustomList(){
     ?customExercises.map(e=>`<div class="custom-item">
         <div>
           <div class="custom-item-name">${e.name} <span class="badge badge-${e.cat}">${e.cat}</span></div>
-          <div class="custom-item-meta">${e.muscles.join(", ")}</div>
+          <div class="custom-item-meta">${e.muscles.map((m,i)=>`<span style="color:${i===0?'var(--accent)':i===1?'var(--orange)':'var(--muted)'}">${m}${i===0?' ①':i===1?' ②':''}</span>`).join(", ")} · ⏱ ${e.restTime||90}s</div>
         </div>
         <button class="btn btn-danger" style="padding:5px 11px;font-size:.78rem;" onclick="deleteCustomExercise('${e.name}')">Delete</button>
       </div>`).join("")
@@ -1516,17 +1832,58 @@ function toggleTimer(){ timerRunning ? pauseTimer() : startTimer(); }
 function startTimer(){
   if(timerLeft<=0)resetTimer();
   timerRunning=true;
+  // Save end time to localStorage so background tab can recover
+  localStorage.setItem("gymlog_timer_end", Date.now() + timerLeft * 1000);
   document.getElementById("timer-play-btn").textContent="⏸ Pause";
   timerInterval=setInterval(()=>{
     timerLeft--;
     updateTimerUI();
-    if(timerLeft<=0){ pauseTimer(); playBeep(); showToast("Rest time's up! 💪"); }
+    if(timerLeft<=0){
+      pauseTimer();
+      localStorage.removeItem("gymlog_timer_end");
+      playBeep(); playMotivationSound();
+      showToast("Rest time's up! 💪");
+      setTimeout(closeTimer, 3000);
+    }
   },1000);
 }
 function pauseTimer(){
   clearInterval(timerInterval); timerRunning=false;
+  localStorage.removeItem("gymlog_timer_end");
   document.getElementById("timer-play-btn").textContent="▶ Start";
 }
+
+// Restore timer when returning to tab/app
+document.addEventListener("visibilitychange", () => {
+  if(document.hidden) return;
+  const endTime = parseInt(localStorage.getItem("gymlog_timer_end") || "0");
+  if(!endTime) return;
+  const remaining = Math.ceil((endTime - Date.now()) / 1000);
+  if(remaining > 0){
+    clearInterval(timerInterval);
+    timerLeft = remaining;
+    openTimer(); updateTimerUI();
+    timerRunning = true;
+    document.getElementById("timer-play-btn").textContent="⏸ Pause";
+    timerInterval = setInterval(()=>{
+      timerLeft--;
+      updateTimerUI();
+      if(timerLeft<=0){
+        pauseTimer();
+        localStorage.removeItem("gymlog_timer_end");
+        playBeep(); playMotivationSound();
+        showToast("Rest time's up! 💪");
+        setTimeout(closeTimer, 3000);
+      }
+    },1000);
+  } else {
+    localStorage.removeItem("gymlog_timer_end");
+    timerLeft = 0; updateTimerUI(); openTimer();
+    playBeep(); playMotivationSound();
+    showToast("Rest time's up! 💪");
+    setTimeout(closeTimer, 3000);
+  }
+});
 function resetTimer(){
   pauseTimer(); timerLeft=timerTotal; updateTimerUI();
 }
@@ -1545,15 +1902,64 @@ function playBeep(){
     [0,0.15,0.3].forEach(t=>{
       const osc=ctx.createOscillator(), gain=ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value=880; gain.gain.setValueAtTime(.3,ctx.currentTime+t);
-      gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+.3);
+      osc.frequency.value=880; gain.gain.setValueAtTime(.8,ctx.currentTime+t);
+      gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+.4);
       osc.start(ctx.currentTime+t); osc.stop(ctx.currentTime+t+.3);
     });
   }catch(e){}
 }
 
+// Motivational sound: ascending power chord + punch
+function playMotivationSound(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const now=ctx.currentTime;
+    // Rising note sweep
+    const sweep=ctx.createOscillator(), sg=ctx.createGain();
+    sweep.type="sawtooth"; sweep.connect(sg); sg.connect(ctx.destination);
+    sweep.frequency.setValueAtTime(200,now);
+    sweep.frequency.exponentialRampToValueAtTime(600,now+0.25);
+    sg.gain.setValueAtTime(0.4,now);
+    sg.gain.exponentialRampToValueAtTime(0.001,now+0.35);
+    sweep.start(now); sweep.stop(now+0.35);
+    // Power chord hits at 0.3s
+    [[261,0.3],[329,0.3],[392,0.3],[523,0.35]].forEach(([freq,t])=>{
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type="square"; o.connect(g); g.connect(ctx.destination);
+      o.frequency.value=freq;
+      g.gain.setValueAtTime(0.25,now+t);
+      g.gain.exponentialRampToValueAtTime(0.001,now+t+0.4);
+      o.start(now+t); o.stop(now+t+0.4);
+    });
+    // Snare-like noise burst at 0.3s
+    const buf=ctx.createBuffer(1,ctx.sampleRate*0.1,ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
+    const noise=ctx.createBufferSource(), ng=ctx.createGain();
+    const filt=ctx.createBiquadFilter(); filt.type="bandpass"; filt.frequency.value=3000;
+    noise.buffer=buf; noise.connect(filt); filt.connect(ng); ng.connect(ctx.destination);
+    ng.gain.setValueAtTime(0.5,now+0.3);
+    ng.gain.exponentialRampToValueAtTime(0.001,now+0.45);
+    noise.start(now+0.3); noise.stop(now+0.5);
+  }catch(e){}
+}
+
 // ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function hasUnsavedData() {
+  return [...document.querySelectorAll(".ex-block")].some(block => {
+    const bid = block.id.replace("block-","");
+    const exVal = document.getElementById(`exname-${bid}`)?.value;
+    if (!exVal) return false;
+    return [...block.querySelectorAll(".set-row")].some(row => {
+      const wEl = row.querySelector("input[id^='w-']");
+      return wEl && parseFloat(wEl.value) > 0;
+    });
+  });
+}
 function showPage(id){
+  if (id !== "log" && hasUnsavedData()) {
+    if (!confirm("You have unsaved session data. Leave anyway?")) return;
+  }
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   document.getElementById("page-"+id).classList.add("active");
@@ -1578,6 +1984,24 @@ function showPage(id){
   if(id==="custom"){renderCustomList();}
 }
 
+// ─── EXPORT ──────────────────────────────────────────────────────────────────
+function exportCSV() {
+  if (!workouts.length) { showToast("No data to export"); return; }
+  const rows = [["Date","Exercise","Category","Set#","Weight(kg)","Reps","Drop Set","Note","Est.1RM"]];
+  workouts.forEach(w => {
+    w.sets.forEach((s, i) => {
+      const rm = !s.dropSet ? calc1RM(s.weight, s.reps).toFixed(1) : "";
+      rows.push([w.date, w.exercise, w.cat, i+1, s.weight, s.reps, s.dropSet?"yes":"", s.note||"", rm]);
+    });
+  });
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+  a.download = `gymlog_${today()}.csv`;
+  a.click();
+  showToast("CSV exported!");
+}
+
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 function formatDate(d,short=false){
   const dt=new Date(d+"T12:00:00");
@@ -1585,11 +2009,13 @@ function formatDate(d,short=false){
     ?dt.toLocaleDateString("en-US",{month:"short",day:"numeric"})
     :dt.toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"short",day:"numeric"});
 }
-function showToast(msg,isPR=false){
+function showToast(msg, cls="", duration=3200){
+  // Legacy boolean support
+  if (cls === true) cls = "pr";
   const t=document.getElementById("toast");
-  t.textContent=msg; t.className="toast"+(isPR?" pr":"");
+  t.textContent=msg; t.className="toast"+(cls?" "+cls:"");
   requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add("show")));
-  setTimeout(()=>t.classList.remove("show"),3200);
+  setTimeout(()=>t.classList.remove("show"), duration);
 }
 </script>
 </body>
