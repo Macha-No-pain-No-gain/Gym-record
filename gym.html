@@ -141,6 +141,19 @@ select option,optgroup{background:var(--surface2);}
 /* Award toast */
 .toast.award-pr{border-color:var(--gold);background:linear-gradient(135deg,rgba(251,191,36,.15),var(--surface));font-size:1rem;padding:16px 24px;}
 .toast.award-beat{border-color:var(--green);background:linear-gradient(135deg,rgba(74,222,128,.12),var(--surface));}
+/* Edit History Modal */
+.edit-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:950;display:flex;align-items:center;justify-content:center;padding:16px;}
+.edit-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;}
+.edit-modal-title{font-size:1.05rem;font-weight:700;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;}
+.edit-set-row{display:grid;grid-template-columns:1fr 1fr 2fr 32px;gap:7px;align-items:center;margin-bottom:7px;}
+.edit-set-row input{padding:7px 8px;text-align:center;font-size:.85rem;}
+.edit-set-row input.note-input{text-align:left;}
+.edit-drop-toggle{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;}
+.edit-drop-toggle.active{background:rgba(251,146,60,.2);color:var(--orange);border-color:var(--orange);}
+.edit-set-del{width:28px;height:28px;border-radius:6px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:.85rem;transition:color .15s;}
+.edit-set-del:hover{color:var(--red);}
+.edit-sets-header{display:grid;grid-template-columns:1fr 1fr 2fr 32px;gap:7px;margin-bottom:4px;}
+.edit-sets-header span{font-size:.7rem;color:var(--muted);text-transform:uppercase;text-align:center;}
 .custom-list{display:flex;flex-direction:column;gap:8px;}
 .custom-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;}
 .custom-item-name{font-weight:600;font-size:.9rem;}
@@ -513,6 +526,36 @@ select option,optgroup{background:var(--surface2);}
         </button>
         <div id="manage-sync-email" style="display:none;font-size:.78rem;color:var(--muted);margin-top:6px;text-align:center;"></div>
       </div>
+      <!-- Timer Alarm Setting -->
+      <div class="card" style="margin-bottom:18px;">
+        <div class="card-title">⏱ Timer Alarm</div>
+        <p style="font-size:.85rem;color:var(--muted);margin:0 0 14px;">Choose what happens when the rest timer ends.</p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;">
+            <input type="radio" name="alarm-mode" value="voice" id="alarm-voice" onchange="saveAlarmMode(this.value)" style="width:auto;margin-top:3px;accent-color:var(--accent);">
+            <div>
+              <div style="font-size:.88rem;color:var(--text);font-weight:600;">🗣 Motivational Voice</div>
+              <div style="font-size:.78rem;color:var(--muted);margin-top:2px;">A stoic quote is read aloud. No noise, just words.</div>
+            </div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;">
+            <input type="radio" name="alarm-mode" value="beep" id="alarm-beep" onchange="saveAlarmMode(this.value)" style="width:auto;margin-top:3px;accent-color:var(--accent);">
+            <div>
+              <div style="font-size:.88rem;color:var(--text);font-weight:600;">🔔 Classic Beep</div>
+              <div style="font-size:.78rem;color:var(--muted);margin-top:2px;">Three short beeps. Simple and reliable.</div>
+            </div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;">
+            <input type="radio" name="alarm-mode" value="both" id="alarm-both" onchange="saveAlarmMode(this.value)" style="width:auto;margin-top:3px;accent-color:var(--accent);">
+            <div>
+              <div style="font-size:.88rem;color:var(--text);font-weight:600;">🔔🗣 Beep + Voice</div>
+              <div style="font-size:.78rem;color:var(--muted);margin-top:2px;">Beep first, then motivational quote.</div>
+            </div>
+          </label>
+        </div>
+        <button class="btn btn-ghost" onclick="testAlarm()" style="margin-top:14px;width:100%;font-size:.82rem;">▶ Test Alarm</button>
+      </div>
+
       <div class="custom-form">
         <div class="card-title">New Custom Exercise</div>
         <div class="log-grid" style="margin-bottom:10px;">
@@ -540,6 +583,45 @@ select option,optgroup{background:var(--surface2);}
 
   </div><!-- /main -->
 </div><!-- /app -->
+
+<!-- ══ EDIT HISTORY MODAL ════════════════════════════════════════ -->
+<div class="edit-modal-overlay" id="edit-modal" style="display:none;" onclick="if(event.target===this)closeEditModal()">
+  <div class="edit-modal-box">
+    <div class="edit-modal-title">
+      <span>✏️ Edit Workout</span>
+      <button onclick="closeEditModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div>
+        <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:5px;">Exercise</label>
+        <input type="text" id="edit-ex-name" list="edit-ex-list" style="width:100%;padding:8px 10px;font-size:.88rem;">
+        <datalist id="edit-ex-list"></datalist>
+      </div>
+      <div>
+        <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:5px;">Date</label>
+        <input type="date" id="edit-ex-date" style="width:100%;padding:8px 10px;font-size:.88rem;">
+      </div>
+      <div>
+        <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:5px;">Category</label>
+        <select id="edit-ex-cat" style="width:100%;padding:8px 10px;font-size:.88rem;">
+          <option value="weights">Weights</option>
+          <option value="calisthenics">Calisthenics</option>
+          <option value="core">Core</option>
+          <option value="cardio">Cardio</option>
+        </select>
+      </div>
+    </div>
+    <div class="edit-sets-header">
+      <span>Weight (kg)</span><span>Reps</span><span>Note</span><span></span>
+    </div>
+    <div id="edit-sets-body"></div>
+    <button onclick="editAddSet()" class="btn btn-ghost" style="width:100%;margin-top:6px;font-size:.82rem;">＋ Add Set</button>
+    <div class="modal-footer" style="margin-top:18px;">
+      <button class="btn btn-primary" onclick="saveEditModal()" style="flex:1;">Save Changes</button>
+      <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══ REST TIMER WIDGET ═════════════════════════════════════════ -->
 <div class="timer-widget hidden" id="timer-widget">
@@ -866,6 +948,8 @@ const EXERCISES = [
   {name:"Lateral Raise",       cat:"weights",     muscles:["shoulders","traps"]},
   // Face Pull: rear delt primary; mid/lower traps secondary; external rotators
   {name:"Face Pull",           cat:"weights",     muscles:["shoulders","traps","back"]},
+  // Rear Delt Raise: posterior deltoid primary (EMG: Botton et al. 2013); middle traps & rhomboids secondary
+  {name:"Rear Delt Raise",     cat:"weights",     muscles:["shoulders","back","traps"]},
   // Leg Curl: hamstrings primary; gastrocnemius (calves) secondary
   {name:"Leg Curl",            cat:"weights",     muscles:["hamstrings","calves"]},
   // Leg Extension: quads only
@@ -948,6 +1032,89 @@ const EXERCISES = [
 // Sources: NSCA guidelines, Schoenfeld (2010), Kraemer & Ratamess (2004)
 // Strength/heavy compound: 3-5 min | Hypertrophy compound: 2-3 min
 // Isolation: 60-90s | Core: 45-60s | Cardio: 30-60s
+// ── Push / Pull / Legs grouping ──────────────────────────────────────────────
+const EX_PPL = {
+  // PUSH — Chest
+  "Bench Press":         {ppl:"push",sub:"Chest"},
+  "Incline Bench Press": {ppl:"push",sub:"Chest"},
+  "Decline Bench Press": {ppl:"push",sub:"Chest"},
+  "Chest Fly":           {ppl:"push",sub:"Chest"},
+  "Dip":                 {ppl:"push",sub:"Chest"},
+  // PUSH — Shoulders
+  "Overhead Press":      {ppl:"push",sub:"Shoulders"},
+  "Lateral Raise":       {ppl:"push",sub:"Shoulders"},
+  "Handstand Push-Up":   {ppl:"push",sub:"Shoulders"},
+  "Planche":             {ppl:"push",sub:"Shoulders"},
+  // PUSH — Triceps
+  "Tricep Pushdown":     {ppl:"push",sub:"Triceps"},
+  "Skull Crusher":       {ppl:"push",sub:"Triceps"},
+  // PULL — Back
+  "Barbell Row":         {ppl:"pull",sub:"Back"},
+  "Lat Pulldown":        {ppl:"pull",sub:"Back"},
+  "Cable Row":           {ppl:"pull",sub:"Back"},
+  "Pull-Up":             {ppl:"pull",sub:"Back"},
+  "Ring Row":            {ppl:"pull",sub:"Back"},
+  "Muscle-Up":           {ppl:"pull",sub:"Back"},
+  "Front Lever":         {ppl:"pull",sub:"Back"},
+  // PULL — Biceps
+  "Dumbbell Curl":       {ppl:"pull",sub:"Biceps"},
+  "Hammer Curl":         {ppl:"pull",sub:"Biceps"},
+  // PULL — Rear Shoulder
+  "Face Pull":           {ppl:"pull",sub:"Rear Shoulder"},
+  "Rear Delt Raise":     {ppl:"pull",sub:"Rear Shoulder"},
+  // LEGS
+  "Squat":               {ppl:"legs",sub:"Legs"},
+  "Deadlift":            {ppl:"legs",sub:"Legs"},
+  "Romanian Deadlift":   {ppl:"legs",sub:"Legs"},
+  "Leg Press":           {ppl:"legs",sub:"Legs"},
+  "Hip Thrust":          {ppl:"legs",sub:"Legs"},
+  "Leg Curl":            {ppl:"legs",sub:"Legs"},
+  "Leg Extension":       {ppl:"legs",sub:"Legs"},
+  "Calf Raise":          {ppl:"legs",sub:"Legs"},
+  "Pistol Squat":        {ppl:"legs",sub:"Legs"},
+  "Nordic Curl":         {ppl:"legs",sub:"Legs"},
+  "Box Jump":            {ppl:"legs",sub:"Legs"},
+  // CORE
+  "Plank":               {ppl:"core",sub:"Core"},
+  "Hanging Leg Raise":   {ppl:"core",sub:"Core"},
+  "Ab Wheel Rollout":    {ppl:"core",sub:"Core"},
+  "Cable Crunch":        {ppl:"core",sub:"Core"},
+  "Russian Twist":       {ppl:"core",sub:"Core"},
+  "Dead Bug":            {ppl:"core",sub:"Core"},
+  "Pallof Press":        {ppl:"core",sub:"Core"},
+  "Hollow Body Hold":    {ppl:"core",sub:"Core"},
+  "Side Plank":          {ppl:"core",sub:"Core"},
+  "Dragon Flag":         {ppl:"core",sub:"Core"},
+  "L-Sit":               {ppl:"core",sub:"Core"},
+  // CARDIO
+  "Running":             {ppl:"cardio",sub:"Cardio"},
+  "Cycling":             {ppl:"cardio",sub:"Cardio"},
+  "Rowing Machine":      {ppl:"cardio",sub:"Cardio"},
+  "Jump Rope":           {ppl:"cardio",sub:"Cardio"},
+  "Burpees":             {ppl:"cardio",sub:"Cardio"},
+  "Battle Ropes":        {ppl:"cardio",sub:"Cardio"},
+  "Swimming":            {ppl:"cardio",sub:"Cardio"},
+  "Stair Climber":       {ppl:"cardio",sub:"Cardio"},
+};
+const PPL_ORDER  = ["push","pull","legs","core","cardio"];
+const PPL_LABELS = {push:"🔴 Push",pull:"🔵 Pull",legs:"🟢 Legs",core:"⚪ Core",cardio:"🟡 Cardio"};
+const PPL_SUBS   = {push:["Chest","Shoulders","Triceps"],pull:["Back","Biceps","Rear Shoulder"],legs:["Legs"],core:["Core"],cardio:["Cardio"]};
+
+function getExPPL(ex) {
+  if (EX_PPL[ex.name]) return EX_PPL[ex.name];
+  // Fallback for custom exercises — infer from primary muscle
+  const m = ex.muscles?.[0] || "";
+  if (m === "chest")                                          return {ppl:"push",  sub:"Chest"};
+  if (m === "triceps")                                        return {ppl:"push",  sub:"Triceps"};
+  if (m === "back" || m === "traps")                          return {ppl:"pull",  sub:"Back"};
+  if (m === "biceps" || m === "forearms")                     return {ppl:"pull",  sub:"Biceps"};
+  if (["quads","hamstrings","glutes","calves"].includes(m))   return {ppl:"legs",  sub:"Legs"};
+  if (["abs","lower back","hip flexors"].includes(m))         return {ppl:"core",  sub:"Core"};
+  if (ex.cat === "cardio")                                    return {ppl:"cardio",sub:"Cardio"};
+  if (ex.cat === "core")                                      return {ppl:"core",  sub:"Core"};
+  return {ppl:"push", sub:"Shoulders"}; // shoulders default → push
+}
+
 const REST_TIMES = {
   // Heavy compounds (3 min)
   "Squat":180,"Deadlift":180,"Bench Press":180,"Overhead Press":180,
@@ -961,7 +1128,7 @@ const REST_TIMES = {
   "Pistol Squat":120,"Nordic Curl":120,
   // Isolation (60-90s)
   "Dumbbell Curl":60,"Hammer Curl":60,"Tricep Pushdown":60,
-  "Skull Crusher":75,"Lateral Raise":60,"Face Pull":60,
+  "Skull Crusher":75,"Lateral Raise":60,"Face Pull":60,"Rear Delt Raise":60,
   "Leg Curl":60,"Leg Extension":60,"Calf Raise":60,
   "Chest Fly":60,"L-Sit":60,
   // Core (45-60s)
@@ -1097,16 +1264,25 @@ function addBlock(scroll = true) {
   div.innerHTML = `
     <div class="ex-block-header">
       <div class="ex-block-num">${blockCount}</div>
-      <select style="max-width:90px;padding:7px 8px;font-size:.8rem;" onchange="filterBlockEx('${bid}',this.value)">
+      <select id="exppl-${bid}" style="max-width:82px;padding:6px 6px;font-size:.78rem;" onchange="populateBlockEx('${bid}')">
         <option value="">All</option>
-        <option value="weights">Weights</option>
-        <option value="calisthenics">Calisthenics</option>
-        <option value="core">Core</option>
-        <option value="cardio">Cardio</option>
+        <option value="push">🔴 Push</option>
+        <option value="pull">🔵 Pull</option>
+        <option value="legs">🟢 Legs</option>
+        <option value="core">⚪ Core</option>
+        <option value="cardio">🟡 Cardio</option>
       </select>
-      <input type="text" id="exsearch-${bid}" placeholder="🔍 Search..." style="max-width:100px;padding:7px 8px;font-size:.8rem;" oninput="searchBlockEx('${bid}',this.value)">
-      <select id="exname-${bid}" style="flex:1;padding:7px 10px;font-size:.88rem;" onchange="updateBlockInfo('${bid}')"></select>
-      <button class="icon-btn del-btn" onclick="removeBlock('${bid}')" title="Remove exercise">✕</button>
+      <select id="exsort-${bid}" style="max-width:90px;padding:6px 6px;font-size:.78rem;" onchange="populateBlockEx('${bid}')">
+        <option value="default">Order ▾</option>
+        <option value="alpha">A – Z</option>
+        <option value="used">Most Used</option>
+        <option value="recent">Recent</option>
+      </select>
+      <input type="text" id="exsearch-${bid}" placeholder="🔍" style="max-width:72px;padding:6px 8px;font-size:.8rem;" oninput="populateBlockEx('${bid}')">
+      <button class="icon-btn del-btn" onclick="removeBlock('${bid}')" title="Remove exercise" style="margin-left:auto;">✕</button>
+    </div>
+    <div style="margin-bottom:8px;">
+      <select id="exname-${bid}" style="width:100%;padding:8px 10px;font-size:.88rem;" onchange="updateBlockInfo('${bid}')"></select>
     </div>
     <div class="ex-info" id="info-${bid}"></div>
     <div class="sets-header" style="margin-top:4px;">
@@ -1130,23 +1306,86 @@ function removeBlock(bid) {
   delete blockSetCounts[bid];
 }
 
-function populateBlockEx(bid, filter = "") {
+function populateBlockEx(bid) {
   const sel = document.getElementById(`exname-${bid}`);
   if (!sel) return;
-  const cur = sel.value;
+  const cur       = sel.value;
+  const pplFilter = document.getElementById(`exppl-${bid}`)?.value  || "";
+  const sortMode  = document.getElementById(`exsort-${bid}`)?.value || "default";
+  const searchQ   = (document.getElementById(`exsearch-${bid}`)?.value || "").toLowerCase();
+
+  // Base list filtered by PPL and search
+  let list = getAllExercises();
+  if (pplFilter) list = list.filter(e => getExPPL(e).ppl === pplFilter);
+  if (searchQ)   list = list.filter(e => e.name.toLowerCase().includes(searchQ));
+
   sel.innerHTML = '<option value="">— Select exercise —</option>';
-  const list = filter ? getAllExercises().filter(e => e.cat === filter) : getAllExercises();
-  [...new Set(list.map(e => e.cat))].forEach(cat => {
-    const g = document.createElement("optgroup");
-    g.label = cat.charAt(0).toUpperCase() + cat.slice(1);
-    list.filter(e => e.cat === cat).forEach(ex => {
-      const o = document.createElement("option");
-      o.value = ex.name; o.textContent = ex.name;
-      if (ex.name === cur) o.selected = true;
-      g.appendChild(o);
+
+  if (sortMode === "used" || sortMode === "recent") {
+    // Compute stats from workout history
+    const useCounts = {}, lastUsed = {};
+    workouts.forEach(w => {
+      useCounts[w.exercise] = (useCounts[w.exercise] || 0) + 1;
+      if (!lastUsed[w.exercise] || w.date > lastUsed[w.exercise]) lastUsed[w.exercise] = w.date;
     });
-    sel.appendChild(g);
-  });
+    const sorted = [...list].sort((a, b) => {
+      if (sortMode === "used")   return (useCounts[b.name]||0) - (useCounts[a.name]||0);
+      return (lastUsed[b.name]||"") > (lastUsed[a.name]||"") ? 1 : -1;
+    });
+    const used   = sorted.filter(e => useCounts[e.name]);
+    const unused = sorted.filter(e => !useCounts[e.name]);
+    const makeGroup = (label, items) => {
+      if (!items.length) return;
+      const g = document.createElement("optgroup"); g.label = label;
+      items.forEach(ex => {
+        const o = document.createElement("option");
+        o.value = ex.name;
+        o.textContent = sortMode === "used" && useCounts[ex.name]
+          ? `${ex.name}  ×${useCounts[ex.name]}`
+          : sortMode === "recent" && lastUsed[ex.name]
+          ? `${ex.name}  ${formatDate(lastUsed[ex.name], true)}`
+          : ex.name;
+        if (ex.name === cur) o.selected = true;
+        g.appendChild(o);
+      });
+      sel.appendChild(g);
+    };
+    makeGroup(sortMode === "used" ? "⭐ Most Used" : "🕒 Recently Used", used);
+    makeGroup("All Others", unused);
+  } else {
+    // PPL grouped (default or alpha)
+    const grouped = {};
+    list.forEach(ex => {
+      const {ppl, sub} = getExPPL(ex);
+      const key = `${ppl}||${sub}`;
+      (grouped[key] = grouped[key] || {ppl, sub, items:[]}).items.push(ex);
+    });
+    if (sortMode === "alpha") {
+      Object.values(grouped).forEach(g => g.items.sort((a,b) => a.name.localeCompare(b.name)));
+    }
+    PPL_ORDER.forEach(ppl => {
+      if (pplFilter && ppl !== pplFilter) return;
+      const knownSubs = PPL_SUBS[ppl] || [];
+      const extraSubs = Object.keys(grouped)
+        .filter(k => k.startsWith(ppl+"||"))
+        .map(k => k.split("||")[1])
+        .filter(s => !knownSubs.includes(s));
+      [...knownSubs, ...extraSubs].forEach(sub => {
+        const grp = grouped[`${ppl}||${sub}`];
+        if (!grp?.items.length) return;
+        const g = document.createElement("optgroup");
+        g.label = `${PPL_LABELS[ppl]} — ${sub}`;
+        grp.items.forEach(ex => {
+          const o = document.createElement("option");
+          o.value = ex.name; o.textContent = ex.name;
+          if (ex.name === cur) o.selected = true;
+          g.appendChild(o);
+        });
+        sel.appendChild(g);
+      });
+    });
+  }
+  if (cur) sel.value = cur;
 }
 function updateBlockInfo(bid) {
   const exName = document.getElementById(`exname-${bid}`)?.value;
@@ -1176,31 +1415,9 @@ function updateBlockInfo(bid) {
   info.classList.add("visible");
 }
 
-function filterBlockEx(bid, cat) {
-  document.getElementById(`exsearch-${bid}`).value = "";
-  populateBlockEx(bid, cat);
-}
-function searchBlockEx(bid, query) {
-  const sel = document.getElementById(`exname-${bid}`);
-  if (!sel) return;
-  const cur = sel.value;
-  const q = query.toLowerCase();
-  sel.innerHTML = '<option value="">— Select exercise —</option>';
-  const list = q
-    ? getAllExercises().filter(e => e.name.toLowerCase().includes(q))
-    : getAllExercises();
-  [...new Set(list.map(e => e.cat))].forEach(cat => {
-    const g = document.createElement("optgroup");
-    g.label = cat.charAt(0).toUpperCase() + cat.slice(1);
-    list.filter(e => e.cat === cat).forEach(ex => {
-      const o = document.createElement("option");
-      o.value = ex.name; o.textContent = ex.name;
-      if (ex.name === cur) o.selected = true;
-      g.appendChild(o);
-    });
-    sel.appendChild(g);
-  });
-}
+// filterBlockEx and searchBlockEx now unified into populateBlockEx
+function filterBlockEx(bid) { populateBlockEx(bid); }
+function searchBlockEx(bid)  { populateBlockEx(bid); }
 
 function addSetToBlock(bid) {
   const exSel = document.getElementById(`exname-${bid}`);
@@ -1401,16 +1618,18 @@ function renderHistory() {
     const totalSets = ws.reduce((s,w) => s+w.sets.length, 0);
     const totalVol  = ws.reduce((s,w) => s+w.sets.reduce((a,set) => a+set.weight*set.reps, 0), 0);
     const exItems = ws.map(w => {
+      const wIdx     = workouts.indexOf(w);
       const mainSets = w.sets.filter(s => !s.dropSet);
       const best1rm  = Math.max(...mainSets.map(s => calc1RM(s.weight, s.reps)), 0);
       const isPR     = best1rm > 0 && Math.abs(best1rm - (allPRs[w.exercise]||0)) < 0.01;
       const summary  = w.sets.map(s => (s.dropSet?"↓":"")+s.weight+"kg×"+s.reps).join("  ");
-      return `<div class="exercise-item">
+      return `<div class="exercise-item" style="position:relative;">
         <div class="exercise-name">
           ${w.exercise}
           <span class="badge badge-${w.cat}">${w.cat}</span>
           ${isPR ? '<span class="badge badge-pr">🏆 PR</span>' : ""}
           ${best1rm>0?`<span style="font-size:.7rem;color:var(--muted);">1RM ~${best1rm.toFixed(1)}kg</span>`:""}
+          <button onclick="openEditModal(${wIdx})" style="margin-left:6px;background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:.7rem;padding:2px 7px;line-height:1.6;">✏️ Edit</button>
         </div>
         <div class="sets-summary">${summary}</div>
       </div>`;
@@ -1432,6 +1651,116 @@ function deleteDate(date) {
   if (!confirm(`Delete all workouts on ${formatDate(date)}?`)) return;
   workouts = workouts.filter(w => w.date !== date);
   saveAll(); renderHistory();
+}
+
+// ─── EDIT HISTORY MODAL ──────────────────────────────────────────────────────
+let editTargetIdx = -1;
+
+function openEditModal(wIdx) {
+  editTargetIdx = wIdx;
+  const w = workouts[wIdx];
+  if (!w) return;
+
+  // Populate exercise name datalist
+  const dl = document.getElementById("edit-ex-list");
+  const allNames = getAllExercises().map(e => e.name);
+  dl.innerHTML = allNames.map(n => `<option value="${n}">`).join("");
+
+  document.getElementById("edit-ex-name").value = w.exercise;
+  document.getElementById("edit-ex-date").value = w.date;
+  document.getElementById("edit-ex-cat").value  = w.cat || "weights";
+
+  renderEditSets(w.sets);
+  document.getElementById("edit-modal").style.display = "flex";
+}
+
+function renderEditSets(sets) {
+  const body = document.getElementById("edit-sets-body");
+  body.innerHTML = sets.map((s, i) => `
+    <div class="edit-set-row" id="edit-row-${i}">
+      <input type="number" min="0" step="0.5" value="${s.weight||""}" placeholder="kg" id="ew-${i}">
+      <input type="number" min="0" step="1"   value="${s.reps||""}"   placeholder="reps" id="er-${i}">
+      <input type="text" class="note-input"   value="${s.note||""}"   placeholder="note" id="en-${i}">
+      <div style="display:flex;gap:3px;">
+        <button class="edit-drop-toggle${s.dropSet?" active":""}" title="Drop set" id="eds-${i}" onclick="toggleEditDrop(${i})">${s.dropSet?"↓D":"D"}</button>
+        <button class="edit-set-del" onclick="deleteEditSet(${i})">✕</button>
+      </div>
+    </div>`
+  ).join("");
+}
+
+function toggleEditDrop(i) {
+  const btn = document.getElementById(`eds-${i}`);
+  const isActive = btn.classList.toggle("active");
+  btn.textContent = isActive ? "↓D" : "D";
+}
+
+function deleteEditSet(i) {
+  document.getElementById(`edit-row-${i}`)?.remove();
+  // Re-index remaining rows
+  const rows = document.querySelectorAll("#edit-sets-body .edit-set-row");
+  rows.forEach((row, newI) => {
+    row.id = `edit-row-${newI}`;
+    row.querySelector(`[id^="ew-"]`).id = `ew-${newI}`;
+    row.querySelector(`[id^="er-"]`).id = `er-${newI}`;
+    row.querySelector(`[id^="en-"]`).id = `en-${newI}`;
+    const dropBtn = row.querySelector(`[id^="eds-"]`);
+    dropBtn.id = `eds-${newI}`;
+    dropBtn.setAttribute("onclick", `toggleEditDrop(${newI})`);
+    row.querySelector(".edit-set-del").setAttribute("onclick", `deleteEditSet(${newI})`);
+  });
+}
+
+function editAddSet() {
+  const rows = document.querySelectorAll("#edit-sets-body .edit-set-row");
+  const newI = rows.length;
+  // Copy last set's weight as default
+  const lastW = newI > 0 ? document.getElementById(`ew-${newI-1}`)?.value || "" : "";
+  const div = document.createElement("div");
+  div.className = "edit-set-row"; div.id = `edit-row-${newI}`;
+  div.innerHTML = `
+    <input type="number" min="0" step="0.5" value="${lastW}" placeholder="kg" id="ew-${newI}">
+    <input type="number" min="0" step="1"   value=""         placeholder="reps" id="er-${newI}">
+    <input type="text" class="note-input"   value=""         placeholder="note" id="en-${newI}">
+    <div style="display:flex;gap:3px;">
+      <button class="edit-drop-toggle" title="Drop set" id="eds-${newI}" onclick="toggleEditDrop(${newI})">D</button>
+      <button class="edit-set-del" onclick="deleteEditSet(${newI})">✕</button>
+    </div>`;
+  document.getElementById("edit-sets-body").appendChild(div);
+  div.querySelector("input").focus();
+}
+
+function saveEditModal() {
+  const name = document.getElementById("edit-ex-name").value.trim();
+  const date = document.getElementById("edit-ex-date").value;
+  const cat  = document.getElementById("edit-ex-cat").value;
+  if (!name || !date) { showToast("Exercise name and date are required."); return; }
+
+  const rows = document.querySelectorAll("#edit-sets-body .edit-set-row");
+  const sets = [];
+  rows.forEach((row, i) => {
+    const weight  = parseFloat(document.getElementById(`ew-${i}`)?.value) || 0;
+    const reps    = parseInt(document.getElementById(`er-${i}`)?.value)   || 0;
+    const note    = document.getElementById(`en-${i}`)?.value.trim() || "";
+    const dropSet = document.getElementById(`eds-${i}`)?.classList.contains("active") || false;
+    if (reps > 0) sets.push({ weight, reps, note, dropSet });
+  });
+
+  if (!sets.length) {
+    if (!confirm("No valid sets. Delete this exercise entry?")) return;
+    workouts.splice(editTargetIdx, 1);
+  } else {
+    workouts[editTargetIdx] = { ...workouts[editTargetIdx], exercise: name, date, cat, sets };
+  }
+  saveAll();
+  closeEditModal();
+  renderHistory();
+  showToast("✅ Workout updated!");
+}
+
+function closeEditModal() {
+  document.getElementById("edit-modal").style.display = "none";
+  editTargetIdx = -1;
 }
 
 // ─── PROGRESS TABS ───────────────────────────────────────────────────────────
@@ -1896,53 +2225,110 @@ function updateTimerUI(){
   ring.style.strokeDashoffset=offset;
   ring.style.stroke=pct>0.5?"#6c63ff":pct>0.25?"#fb923c":"#f87171";
 }
-function playBeep(){
+// ── Stoic motivational quotes spoken aloud when rest timer ends ───────────────
+const VOICE_QUOTES = [
+  "Rest is over. Time to forge iron.",
+  "Discipline is the bridge between goals and accomplishment.",
+  "The obstacle is the way. Get back in.",
+  "Comfort is the enemy of progress.",
+  "You don't get what you wish for. You get what you work for.",
+  "Pain is weakness leaving the body.",
+  "The iron never lies. Neither should you.",
+  "Do not pray for an easy life. Pray for the strength to endure a difficult one.",
+  "Suffer the pain of discipline, or suffer the pain of regret.",
+  "Champions are made when no one is watching.",
+  "One more rep. That's where you grow.",
+  "Your body can do it. Convince your mind.",
+  "Sweat is just fat crying.",
+  "Every set is a choice. Choose hard.",
+  "Hardship reveals character. Build both.",
+  "No shortcuts. No excuses. Only results.",
+  "The mind quits long before the body does.",
+  "Earn your rest.",
+  "Make the rest mean something.",
+  "Steel sharpens steel.",
+];
+
+let _voicesLoaded = false;
+if (window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = () => { _voicesLoaded = true; };
+}
+
+function _pickVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  // Prefer deep/authoritative English voices
+  const priority = ["Daniel","Alex","Google UK English Male","Aaron","Tom","Fred","Arthur"];
+  for (const name of priority) {
+    const v = voices.find(v => v.name.includes(name));
+    if (v) return v;
+  }
+  // Fallback: any en-US male-ish local voice
+  return voices.find(v => v.lang.startsWith("en") && v.localService) || voices[0] || null;
+}
+
+function speakVoiceQuote() {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const quote = VOICE_QUOTES[Math.floor(Math.random() * VOICE_QUOTES.length)];
+  const utter = new SpeechSynthesisUtterance(quote);
+  utter.rate  = 0.88;   // slightly slower = authoritative
+  utter.pitch = 0.80;   // lower pitch = deeper voice
+  utter.volume = 1.0;
+  const v = _pickVoice();
+  if (v) utter.voice = v;
+  window.speechSynthesis.speak(utter);
+  // Show the quote as a subtle toast
+  showToast(`💬 "${quote}"`, "", 4500);
+}
+
+// ── Alarm mode: "voice" | "beep" | "both"  (saved to localStorage) ────────────
+let alarmMode = localStorage.getItem("gymlog_alarm_mode") || "voice";
+
+function saveAlarmMode(val){
+  alarmMode = val;
+  localStorage.setItem("gymlog_alarm_mode", val);
+}
+
+function loadAlarmModeSetting(){
+  const mode = localStorage.getItem("gymlog_alarm_mode") || "voice";
+  alarmMode = mode;
+  const el = document.getElementById("alarm-" + mode);
+  if (el) el.checked = true;
+}
+
+function _playRawBeep(){
   try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    [0,0.15,0.3].forEach(t=>{
-      const osc=ctx.createOscillator(), gain=ctx.createGain();
+    const ctx = new(window.AudioContext||window.webkitAudioContext)();
+    [0, 0.15, 0.3].forEach(t => {
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value=880; gain.gain.setValueAtTime(.8,ctx.currentTime+t);
-      gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+.4);
-      osc.start(ctx.currentTime+t); osc.stop(ctx.currentTime+t+.3);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(.7, ctx.currentTime + t);
+      gain.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + t + .35);
+      osc.start(ctx.currentTime + t); osc.stop(ctx.currentTime + t + .35);
     });
   }catch(e){}
 }
 
-// Motivational sound: ascending power chord + punch
-function playMotivationSound(){
-  try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    const now=ctx.currentTime;
-    // Rising note sweep
-    const sweep=ctx.createOscillator(), sg=ctx.createGain();
-    sweep.type="sawtooth"; sweep.connect(sg); sg.connect(ctx.destination);
-    sweep.frequency.setValueAtTime(200,now);
-    sweep.frequency.exponentialRampToValueAtTime(600,now+0.25);
-    sg.gain.setValueAtTime(0.4,now);
-    sg.gain.exponentialRampToValueAtTime(0.001,now+0.35);
-    sweep.start(now); sweep.stop(now+0.35);
-    // Power chord hits at 0.3s
-    [[261,0.3],[329,0.3],[392,0.3],[523,0.35]].forEach(([freq,t])=>{
-      const o=ctx.createOscillator(), g=ctx.createGain();
-      o.type="square"; o.connect(g); g.connect(ctx.destination);
-      o.frequency.value=freq;
-      g.gain.setValueAtTime(0.25,now+t);
-      g.gain.exponentialRampToValueAtTime(0.001,now+t+0.4);
-      o.start(now+t); o.stop(now+t+0.4);
-    });
-    // Snare-like noise burst at 0.3s
-    const buf=ctx.createBuffer(1,ctx.sampleRate*0.1,ctx.sampleRate);
-    const d=buf.getChannelData(0);
-    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
-    const noise=ctx.createBufferSource(), ng=ctx.createGain();
-    const filt=ctx.createBiquadFilter(); filt.type="bandpass"; filt.frequency.value=3000;
-    noise.buffer=buf; noise.connect(filt); filt.connect(ng); ng.connect(ctx.destination);
-    ng.gain.setValueAtTime(0.5,now+0.3);
-    ng.gain.exponentialRampToValueAtTime(0.001,now+0.45);
-    noise.start(now+0.3); noise.stop(now+0.5);
-  }catch(e){}
+function playBeep(){
+  if (alarmMode === "voice") {
+    speakVoiceQuote();
+  } else if (alarmMode === "beep") {
+    _playRawBeep();
+  } else { // "both"
+    _playRawBeep();
+    setTimeout(() => speakVoiceQuote(), 600);
+  }
 }
+
+function playMotivationSound(){ /* handled by playBeep */ }
+
+function testAlarm(){
+  playBeep();
+}
+
+// Load setting when page becomes visible
+document.addEventListener("DOMContentLoaded", loadAlarmModeSetting);
 
 // ─── NAVIGATION ──────────────────────────────────────────────────────────────
 function hasUnsavedData() {
@@ -1981,7 +2367,7 @@ function showPage(id){
     document.getElementById("body-quote").textContent=`"${q.text}" — ${q.author}`;
     renderBodyMap();
   }
-  if(id==="custom"){renderCustomList();}
+  if(id==="custom"){renderCustomList(); loadAlarmModeSetting();}
 }
 
 // ─── EXPORT ──────────────────────────────────────────────────────────────────
