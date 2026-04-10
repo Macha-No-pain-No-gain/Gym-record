@@ -141,6 +141,7 @@ select option,optgroup{background:var(--surface2);}
 .sidebar-quote-author{font-size:.7rem;color:rgba(108,99,255,.7);font-weight:600;}
 /* Rest Timer */
 .timer-widget{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.4);width:210px;}
+@media(max-width:860px){.timer-widget{bottom:auto;top:60px;left:50%;right:auto;transform:translateX(-50%);width:calc(100% - 32px);max-width:400px;border-radius:12px;}}
 .timer-widget.hidden{display:none;}
 .timer-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
 .timer-title{font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
@@ -556,6 +557,8 @@ select option,optgroup{background:var(--surface2);}
         <button class="modal-tab" onclick="switchSyncTab('setup',this)">Setup Guide</button>
       </div>
       <div id="sync-tab-login">
+        <div class="modal-field"><label>Supabase Project URL</label><input type="url" id="sb-url-login" placeholder="https://xxxx.supabase.co"></div>
+        <div class="modal-field"><label>Supabase Anon Key</label><input type="text" id="sb-key-login" placeholder="sb_publishable_..."></div>
         <div class="modal-field"><label>Email</label><input type="email" id="sb-email" placeholder="you@example.com"></div>
         <div class="modal-field"><label>Password</label><input type="password" id="sb-password" placeholder="••••••••"></div>
         <div class="modal-footer">
@@ -641,13 +644,22 @@ async function initSupabase() {
 }
 
 async function sbSignIn() {
-  const cfg = JSON.parse(localStorage.getItem("gymlog_sb_config") || "null");
-  if (!cfg?.url || !cfg?.key) { showToast("Run Setup Guide first to add your Supabase credentials"); return; }
+  const urlInput = document.getElementById("sb-url-login").value.trim();
+  const keyInput = document.getElementById("sb-key-login").value.trim();
+  let cfg = JSON.parse(localStorage.getItem("gymlog_sb_config") || "null");
+  // Use form values if provided, otherwise fall back to saved config
+  const url = urlInput || cfg?.url;
+  const key = keyInput || cfg?.key;
+  if (!url || !key) { showToast("Enter your Supabase URL and Anon Key"); return; }
+  if (urlInput && keyInput) {
+    cfg = { url, key };
+    localStorage.setItem("gymlog_sb_config", JSON.stringify(cfg));
+  }
   const email = document.getElementById("sb-email").value.trim();
   const pass  = document.getElementById("sb-password").value;
   if (!email || !pass) { showToast("Enter email and password"); return; }
   try {
-    sbClient = supabase.createClient(cfg.url, cfg.key);
+    sbClient = supabase.createClient(url, key);
     const { data, error } = await sbClient.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
     sbUser = data.user;
