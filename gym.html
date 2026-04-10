@@ -473,6 +473,17 @@ select option,optgroup{background:var(--surface2);}
     <div class="page" id="page-custom">
       <h1>Manage Exercises</h1>
       <p class="subtitle">Add custom exercises with your own muscle mappings</p>
+
+      <!-- Cloud Sync (visible on mobile) -->
+      <div class="card" style="margin-bottom:18px;">
+        <div class="card-title">☁️ Cloud Sync</div>
+        <p style="font-size:.85rem;color:var(--muted);margin:0 0 12px;">Sync your data across devices using Supabase (free).</p>
+        <button class="btn btn-primary" onclick="openSyncModal()" style="width:100%;">
+          <span id="manage-sync-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:6px;"></span>
+          <span id="manage-sync-label">Connect Cloud Sync</span>
+        </button>
+        <div id="manage-sync-email" style="display:none;font-size:.78rem;color:var(--muted);margin-top:6px;text-align:center;"></div>
+      </div>
       <div class="custom-form">
         <div class="card-title">New Custom Exercise</div>
         <div class="log-grid" style="margin-bottom:10px;">
@@ -736,6 +747,9 @@ function updateSyncUI() {
   const mail = document.getElementById("sync-email");
   const loginUI    = document.getElementById("sync-login-ui");
   const loggedinUI = document.getElementById("sync-loggedin-ui");
+  const mdot  = document.getElementById("manage-sync-dot");
+  const mlbl  = document.getElementById("manage-sync-label");
+  const mmail = document.getElementById("manage-sync-email");
   if (sbUser) {
     btn.classList.add("connected"); dot.classList.add("on");
     lbl.textContent = "☁️ Synced"; mail.textContent = sbUser.email;
@@ -746,11 +760,17 @@ function updateSyncUI() {
     if (el) el.textContent = sbUser.email;
     const lt = document.getElementById("sync-last-time");
     if (lt && lastSyncTime) lt.textContent = "Last synced: " + new Date(lastSyncTime).toLocaleString();
+    if (mdot)  { mdot.style.background = "var(--green)"; }
+    if (mlbl)  { mlbl.textContent = "☁️ Synced"; }
+    if (mmail) { mmail.textContent = sbUser.email; mmail.style.display = "block"; }
   } else {
     btn.classList.remove("connected"); dot.classList.remove("on");
     lbl.textContent = "Connect Cloud Sync"; mail.style.display = "none";
     if (loginUI) loginUI.style.display = "block";
     if (loggedinUI) loggedinUI.style.display = "none";
+    if (mdot)  { mdot.style.background = "var(--muted)"; }
+    if (mlbl)  { mlbl.textContent = "Connect Cloud Sync"; }
+    if (mmail) { mmail.style.display = "none"; }
   }
 }
 
