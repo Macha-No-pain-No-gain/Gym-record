@@ -141,6 +141,27 @@ select option,optgroup{background:var(--surface2);}
 /* Award toast */
 .toast.award-pr{border-color:var(--gold);background:linear-gradient(135deg,rgba(251,191,36,.15),var(--surface));font-size:1rem;padding:16px 24px;}
 .toast.award-beat{border-color:var(--green);background:linear-gradient(135deg,rgba(74,222,128,.12),var(--surface));}
+/* Tutorial Overlay */
+.tut-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:1200;display:flex;align-items:center;justify-content:center;padding:20px;}
+.tut-card{background:var(--surface);border:1px solid rgba(108,99,255,.3);border-radius:22px;padding:36px 28px 28px;width:100%;max-width:460px;text-align:center;position:relative;box-shadow:0 24px 64px rgba(0,0,0,.5);}
+.tut-lang{position:absolute;top:16px;left:18px;display:flex;gap:5px;}
+.tut-lang button{padding:4px 11px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:.75rem;font-weight:600;transition:all .15s;}
+.tut-lang button.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.tut-skip{position:absolute;top:16px;right:18px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.82rem;}
+.tut-skip:hover{color:var(--text);}
+.tut-icon{font-size:3.2rem;margin:8px 0 14px;}
+.tut-title{font-size:1.3rem;font-weight:700;margin-bottom:10px;color:var(--text);}
+.tut-body{font-size:.9rem;color:var(--muted);line-height:1.7;margin-bottom:24px;min-height:80px;}
+.tut-dots{display:flex;justify-content:center;gap:7px;margin-bottom:22px;}
+.tut-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .25s;}
+.tut-dot.active{background:var(--accent);width:22px;border-radius:4px;}
+.tut-nav{display:flex;gap:10px;align-items:center;justify-content:space-between;}
+.tut-back{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:9px;padding:9px 18px;cursor:pointer;font-size:.87rem;font-weight:600;transition:all .15s;}
+.tut-back:hover{color:var(--text);}
+.tut-next{flex:1;background:var(--accent);color:#fff;border:none;border-radius:9px;padding:10px 18px;cursor:pointer;font-size:.9rem;font-weight:700;transition:all .15s;}
+.tut-next:hover{background:#7c74ff;}
+.tut-progress{height:3px;background:var(--border);border-radius:2px;margin-bottom:28px;overflow:hidden;}
+.tut-progress-bar{height:100%;background:var(--accent);border-radius:2px;transition:width .3s;}
 /* Edit History Modal */
 .edit-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:950;display:flex;align-items:center;justify-content:center;padding:16px;}
 .edit-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;}
@@ -233,11 +254,12 @@ select option,optgroup{background:var(--surface2);}
 <div class="app">
   <div class="sidebar">
     <div class="logo">💪 GymLog</div>
-    <div class="nav-item active" onclick="showPage('log')"><span>➕</span> Log Workout</div>
-    <div class="nav-item" onclick="showPage('history')"><span>📋</span> History</div>
-    <div class="nav-item" onclick="showPage('progress')"><span>📈</span> Progress</div>
-    <div class="nav-item" onclick="showPage('body')"><span>🫀</span> Body Map</div>
-    <div class="nav-item" onclick="showPage('custom')"><span>⚙️</span> Settings</div>
+    <div class="nav-item active" onclick="showPage('log')"><span>➕</span> <span data-i18n="nav_log">Log Workout</span></div>
+    <div class="nav-item" onclick="showPage('history')"><span>📋</span> <span data-i18n="nav_history">History</span></div>
+    <div class="nav-item" onclick="showPage('progress')"><span>📈</span> <span data-i18n="nav_progress">Progress</span></div>
+    <div class="nav-item" onclick="showPage('body')"><span>🫀</span> <span data-i18n="nav_body">Body Map</span></div>
+    <div class="nav-item" onclick="showPage('custom')"><span>⚙️</span> <span data-i18n="nav_settings">Settings</span></div>
+    <button class="sync-btn" id="tut-nav-btn" onclick="openTutorial()" style="margin-bottom:0;">❓ Tutorial</button>
     <button class="sync-btn" id="sync-btn" onclick="openSyncModal()">
       <div class="sync-dot" id="sync-dot"></div>
       <span id="sync-label">Connect Cloud Sync</span>
@@ -253,8 +275,8 @@ select option,optgroup{background:var(--surface2);}
 
     <!-- ══ LOG PAGE ══════════════════════════════════════════════ -->
     <div class="page active" id="page-log">
-      <h1>Log Workout</h1>
-      <p class="subtitle">Fill in your exercises continuously — save everything at the end</p>
+      <h1 data-i18n="page_log_title">Log Workout</h1>
+      <p class="subtitle" data-i18n="page_log_sub">Fill in your exercises continuously — save everything at the end</p>
 
       <div class="quote-card" id="log-quote" style="display:none;">
         <div class="quote-text" id="log-quote-text"></div>
@@ -262,39 +284,39 @@ select option,optgroup{background:var(--surface2);}
       </div>
 
       <div style="margin-bottom:16px;max-width:220px;">
-        <label>Date</label>
+        <label data-i18n="lbl_date">Date</label>
         <input type="date" id="log-date">
       </div>
 
       <!-- Continuous exercise blocks -->
       <div id="session-blocks"></div>
 
-      <button class="btn-add-block" onclick="addBlock()">➕ Add Exercise</button>
+      <button class="btn-add-block" onclick="addBlock()">➕ <span data-i18n="nav_log_add">Add Exercise</span></button>
 
       <div class="session-footer">
-        <button class="btn btn-success" onclick="saveSession()">💾 Save Session</button>
-        <button class="btn btn-danger" onclick="clearAllBlocks()">Discard All</button>
-        <button class="btn btn-ghost" style="margin-left:auto;" onclick="openTimer()">⏱ Rest Timer</button>
+        <button class="btn btn-success" onclick="saveSession()" data-i18n="btn_save">💾 Save Session</button>
+        <button class="btn btn-danger" onclick="clearAllBlocks()" data-i18n="btn_discard">Discard All</button>
+        <button class="btn btn-ghost" style="margin-left:auto;" onclick="openTimer()" data-i18n="btn_rest_timer">⏱ Rest Timer</button>
       </div>
     </div>
 
     <!-- ══ HISTORY PAGE ══════════════════════════════════════════ -->
     <div class="page" id="page-history">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
-        <h1>History</h1>
+        <h1 data-i18n="page_history_title">History</h1>
         <button class="btn btn-ghost" onclick="exportCSV()" style="font-size:.78rem;padding:6px 12px;">⬇ Export CSV</button>
       </div>
-      <p class="subtitle">All logged sessions</p>
+      <p class="subtitle" data-i18n="page_history_sub">All logged sessions</p>
       <div class="quote-card" id="history-quote" style="display:none;">
         <div class="quote-text" id="history-quote-text"></div>
         <div class="quote-author" id="history-quote-author"></div>
       </div>
       <div class="history-filters">
-        <button class="filter-chip active" onclick="filterHistory('all',this)">All</button>
-        <button class="filter-chip" onclick="filterHistory('weights',this)">Weights</button>
-        <button class="filter-chip" onclick="filterHistory('calisthenics',this)">Calisthenics</button>
-        <button class="filter-chip" onclick="filterHistory('core',this)">Core</button>
-        <button class="filter-chip" onclick="filterHistory('cardio',this)">Cardio</button>
+        <button class="filter-chip hist-filter-chip active" onclick="filterHistory('all',this)">All</button>
+        <button class="filter-chip hist-filter-chip" onclick="filterHistory('weights',this)">Weights</button>
+        <button class="filter-chip hist-filter-chip" onclick="filterHistory('calisthenics',this)">Calisthenics</button>
+        <button class="filter-chip hist-filter-chip" onclick="filterHistory('core',this)">Core</button>
+        <button class="filter-chip hist-filter-chip" onclick="filterHistory('cardio',this)">Cardio</button>
       </div>
       <div id="history-list"></div>
     </div>
@@ -304,9 +326,9 @@ select option,optgroup{background:var(--surface2);}
       <h1>Progress</h1>
       <p class="subtitle">Performance charts, body weight, and consistency</p>
       <div class="tab-bar">
-        <button class="tab-btn active" onclick="showProgressTab('perf',this)">Performance</button>
-        <button class="tab-btn" onclick="showProgressTab('bw',this)">Body Weight</button>
-        <button class="tab-btn" onclick="showProgressTab('streak',this)">Streak</button>
+        <button id="tab-btn-perf"   class="tab-btn active" onclick="showProgressTab('perf',this)">Performance</button>
+        <button id="tab-btn-bw"     class="tab-btn" onclick="showProgressTab('bw',this)">Body Weight</button>
+        <button id="tab-btn-streak" class="tab-btn" onclick="showProgressTab('streak',this)">Streak</button>
       </div>
 
       <!-- Performance tab -->
@@ -513,8 +535,8 @@ select option,optgroup{background:var(--surface2);}
 
     <!-- ══ MANAGE PAGE ═══════════════════════════════════════════ -->
     <div class="page" id="page-custom">
-      <h1>Manage Exercises</h1>
-      <p class="subtitle">Add custom exercises with your own muscle mappings</p>
+      <h1 data-i18n="page_settings_title">Manage Exercises</h1>
+      <p class="subtitle" data-i18n="page_settings_sub">Add custom exercises with your own muscle mappings</p>
 
       <!-- Cloud Sync (visible on mobile) -->
       <div class="card" style="margin-bottom:18px;">
@@ -556,6 +578,25 @@ select option,optgroup{background:var(--surface2);}
         <button class="btn btn-ghost" onclick="testAlarm()" style="margin-top:14px;width:100%;font-size:.82rem;">▶ Test Alarm</button>
       </div>
 
+      <!-- Language & Tutorial -->
+      <div class="card" style="margin-bottom:18px;">
+        <div class="card-title">🌐 Language / 言語</div>
+        <div style="display:flex;gap:10px;margin-bottom:14px;">
+          <button onclick="setAppLang('en')" id="lang-en-btn"
+            style="flex:1;padding:10px;border-radius:9px;border:2px solid var(--accent);background:rgba(108,99,255,.15);color:var(--accent);font-weight:700;cursor:pointer;font-size:.88rem;">
+            🇺🇸 English
+          </button>
+          <button onclick="setAppLang('ja')" id="lang-ja-btn"
+            style="flex:1;padding:10px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--muted);font-weight:700;cursor:pointer;font-size:.88rem;">
+            🇯🇵 日本語
+          </button>
+        </div>
+        <button id="settings-tut-btn" class="btn btn-ghost" onclick="openTutorial()" style="width:100%;font-size:.84rem;">
+          Show Tutorial Again
+        </button>
+      </div>
+
+
       <div class="custom-form">
         <div class="card-title">New Custom Exercise</div>
         <div class="log-grid" style="margin-bottom:10px;">
@@ -583,6 +624,26 @@ select option,optgroup{background:var(--surface2);}
 
   </div><!-- /main -->
 </div><!-- /app -->
+
+<!-- ══ TUTORIAL OVERLAY ══════════════════════════════════════════ -->
+<div class="tut-overlay" id="tut-overlay" style="display:none;">
+  <div class="tut-card">
+    <div class="tut-lang">
+      <button id="tut-en-btn" class="active" onclick="setTutLang('en')">EN</button>
+      <button id="tut-ja-btn"              onclick="setTutLang('ja')">日本語</button>
+    </div>
+    <button class="tut-skip" id="tut-skip-btn" onclick="closeTutorial()">Skip ✕</button>
+    <div class="tut-progress"><div class="tut-progress-bar" id="tut-bar"></div></div>
+    <div class="tut-icon"  id="tut-icon"></div>
+    <div class="tut-title" id="tut-title"></div>
+    <div class="tut-body"  id="tut-body"></div>
+    <div class="tut-dots"  id="tut-dots"></div>
+    <div class="tut-nav">
+      <button class="tut-back" id="tut-back" onclick="tutStep(-1)">← Back</button>
+      <button class="tut-next" id="tut-next" onclick="tutStep(1)">Next →</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══ EDIT HISTORY MODAL ════════════════════════════════════════ -->
 <div class="edit-modal-overlay" id="edit-modal" style="display:none;" onclick="if(event.target===this)closeEditModal()">
@@ -914,52 +975,69 @@ function copySql() {
 // ─── EXERCISE DATABASE ───────────────────────────────────────────────────────
 const EXERCISES = [
   // ── Weights ──────────────────────────────────────────────────────────────
-  // Bench Press: pec major primary; ant.delt & triceps secondary
-  {name:"Bench Press",         cat:"weights",     muscles:["chest","shoulders","triceps"]},
-  // Incline: upper pec primary; ant.delt more involved than flat; triceps secondary
-  {name:"Incline Bench Press", cat:"weights",     muscles:["chest","shoulders","triceps"]},
+  // ── Chest (Push) ───────────────────────────────────────────────────────────
+  // Barbell Bench Press: pec major primary; ant.delt & triceps secondary
+  {name:"Barbell Bench Press",         cat:"weights", muscles:["chest","shoulders","triceps"]},
+  {name:"Dumbbell Bench Press",        cat:"weights", muscles:["chest","shoulders","triceps"]},
+  // Incline: upper pec primary; ant.delt more involved; triceps secondary
+  {name:"Barbell Incline Bench Press", cat:"weights", muscles:["chest","shoulders","triceps"]},
+  {name:"Dumbbell Incline Bench Press",cat:"weights", muscles:["chest","shoulders","triceps"]},
   // Decline: lower pec primary; triceps more than incline; ant.delt minimal
-  {name:"Decline Bench Press", cat:"weights",     muscles:["chest","triceps","shoulders"]},
-  // Squat: quads & glutes co-primary; hamstrings & erectors secondary
-  {name:"Squat",               cat:"weights",     muscles:["quads","glutes","hamstrings","lower back"]},
-  // Deadlift: erectors & glutes co-primary; hamstrings, traps secondary; forearms grip
-  {name:"Deadlift",            cat:"weights",     muscles:["back","glutes","hamstrings","traps","forearms"]},
+  {name:"Barbell Decline Bench Press", cat:"weights", muscles:["chest","triceps","shoulders"]},
+  {name:"Dumbbell Decline Bench Press",cat:"weights", muscles:["chest","triceps","shoulders"]},
+  // Fly: pec major primary (stretch-focused); ant.delt secondary
+  {name:"Dumbbell Chest Fly",          cat:"weights", muscles:["chest","shoulders"]},
+  {name:"Cable Fly",                   cat:"weights", muscles:["chest","shoulders"]},
+
+  // ── Shoulders (Push) ───────────────────────────────────────────────────────
   // OHP: ant./lat.delt primary; triceps & upper traps secondary
-  {name:"Overhead Press",      cat:"weights",     muscles:["shoulders","triceps","traps"]},
-  // Barbell Row: lats & rhomboids primary; traps & biceps secondary; rear delt tertiary
-  {name:"Barbell Row",         cat:"weights",     muscles:["back","traps","biceps","shoulders"]},
-  // RDL: hamstrings primary; glutes secondary; erectors stabiliser
-  {name:"Romanian Deadlift",   cat:"weights",     muscles:["hamstrings","glutes","lower back"]},
-  // Leg Press: quads primary; glutes & hamstrings secondary
-  {name:"Leg Press",           cat:"weights",     muscles:["quads","glutes","hamstrings"]},
-  // Lat Pulldown: lats primary; biceps & rear delt secondary
-  {name:"Lat Pulldown",        cat:"weights",     muscles:["back","biceps","shoulders"]},
-  // Cable Row: lats & rhomboids primary; biceps secondary; rear delt tertiary
-  {name:"Cable Row",           cat:"weights",     muscles:["back","biceps","shoulders"]},
-  // Curl: biceps primary; forearms (brachialis/brachioradialis) secondary
-  {name:"Dumbbell Curl",       cat:"weights",     muscles:["biceps","forearms"]},
-  // Hammer: brachialis & brachioradialis co-primary with biceps; forearms dominant
-  {name:"Hammer Curl",         cat:"weights",     muscles:["biceps","forearms"]},
-  // Pushdown: all triceps heads primary; forearms stabilise
-  {name:"Tricep Pushdown",     cat:"weights",     muscles:["triceps","forearms"]},
-  // Skull Crusher: long & medial head primary; forearms stabilise
-  {name:"Skull Crusher",       cat:"weights",     muscles:["triceps","forearms"]},
+  {name:"Barbell Overhead Press",      cat:"weights", muscles:["shoulders","triceps","traps"]},
+  {name:"Dumbbell Overhead Press",     cat:"weights", muscles:["shoulders","triceps","traps"]},
+  {name:"Seated Barbell Press",        cat:"weights", muscles:["shoulders","triceps","traps"]},
+  {name:"Seated Dumbbell Press",       cat:"weights", muscles:["shoulders","triceps","traps"]},
+  {name:"Arnold Press",                cat:"weights", muscles:["shoulders","triceps"]},
   // Lateral Raise: lateral delt primary; upper traps secondary
-  {name:"Lateral Raise",       cat:"weights",     muscles:["shoulders","traps"]},
-  // Face Pull: rear delt primary; mid/lower traps secondary; external rotators
-  {name:"Face Pull",           cat:"weights",     muscles:["shoulders","traps","back"]},
-  // Rear Delt Raise: posterior deltoid primary (EMG: Botton et al. 2013); middle traps & rhomboids secondary
-  {name:"Rear Delt Raise",     cat:"weights",     muscles:["shoulders","back","traps"]},
-  // Leg Curl: hamstrings primary; gastrocnemius (calves) secondary
-  {name:"Leg Curl",            cat:"weights",     muscles:["hamstrings","calves"]},
-  // Leg Extension: quads only
-  {name:"Leg Extension",       cat:"weights",     muscles:["quads"]},
-  // Calf Raise: gastrocnemius/soleus primary
-  {name:"Calf Raise",          cat:"weights",     muscles:["calves"]},
-  // Hip Thrust: glutes primary (max activation); hamstrings secondary; erectors stabilise
-  {name:"Hip Thrust",          cat:"weights",     muscles:["glutes","hamstrings","lower back"]},
-  // Chest Fly: pec major primary (stretch-focused); ant.delt secondary
-  {name:"Chest Fly",           cat:"weights",     muscles:["chest","shoulders"]},
+  {name:"Lateral Raise",               cat:"weights", muscles:["shoulders","traps"]},
+  {name:"Cable Lateral Raise",         cat:"weights", muscles:["shoulders","traps"]},
+
+  // ── Triceps (Push) ─────────────────────────────────────────────────────────
+  {name:"Tricep Pushdown",             cat:"weights", muscles:["triceps","forearms"]},
+  {name:"Overhead Tricep Extension",   cat:"weights", muscles:["triceps"]},
+  {name:"Skull Crusher",               cat:"weights", muscles:["triceps","forearms"]},
+  {name:"Close-Grip Bench Press",      cat:"weights", muscles:["triceps","chest","shoulders"]},
+
+  // ── Back (Pull) ────────────────────────────────────────────────────────────
+  // Row: lats & rhomboids primary; traps & biceps secondary
+  {name:"Barbell Row",                 cat:"weights", muscles:["back","traps","biceps","shoulders"]},
+  {name:"Dumbbell Row",                cat:"weights", muscles:["back","biceps","shoulders"]},
+  {name:"T-Bar Row",                   cat:"weights", muscles:["back","traps","biceps"]},
+  {name:"Lat Pulldown",                cat:"weights", muscles:["back","biceps","shoulders"]},
+  {name:"Cable Row",                   cat:"weights", muscles:["back","biceps","shoulders"]},
+
+  // ── Biceps (Pull) ──────────────────────────────────────────────────────────
+  {name:"Barbell Curl",                cat:"weights", muscles:["biceps","forearms"]},
+  {name:"Dumbbell Curl",               cat:"weights", muscles:["biceps","forearms"]},
+  {name:"Hammer Curl",                 cat:"weights", muscles:["biceps","forearms"]},
+  {name:"Preacher Curl",               cat:"weights", muscles:["biceps","forearms"]},
+  {name:"Cable Curl",                  cat:"weights", muscles:["biceps","forearms"]},
+
+  // ── Rear Shoulder (Pull) ───────────────────────────────────────────────────
+  {name:"Face Pull",                   cat:"weights", muscles:["shoulders","traps","back"]},
+  {name:"Rear Delt Raise",             cat:"weights", muscles:["shoulders","back","traps"]},
+  {name:"Cable Rear Delt Fly",         cat:"weights", muscles:["shoulders","back","traps"]},
+
+  // ── Legs ───────────────────────────────────────────────────────────────────
+  {name:"Squat",                       cat:"weights", muscles:["quads","glutes","hamstrings","lower back"]},
+  {name:"Front Squat",                 cat:"weights", muscles:["quads","glutes","lower back"]},
+  {name:"Goblet Squat",                cat:"weights", muscles:["quads","glutes","hamstrings"]},
+  {name:"Deadlift",                    cat:"weights", muscles:["back","glutes","hamstrings","traps","forearms"]},
+  {name:"Romanian Deadlift",           cat:"weights", muscles:["hamstrings","glutes","lower back"]},
+  {name:"Dumbbell Romanian Deadlift",  cat:"weights", muscles:["hamstrings","glutes","lower back"]},
+  {name:"Leg Press",                   cat:"weights", muscles:["quads","glutes","hamstrings"]},
+  {name:"Hip Thrust",                  cat:"weights", muscles:["glutes","hamstrings","lower back"]},
+  {name:"Leg Curl",                    cat:"weights", muscles:["hamstrings","calves"]},
+  {name:"Leg Extension",               cat:"weights", muscles:["quads"]},
+  {name:"Calf Raise",                  cat:"weights", muscles:["calves"]},
 
   // ── Calisthenics ─────────────────────────────────────────────────────────
   // Pull-Up: lats primary; biceps secondary; rear delt tertiary
@@ -1035,45 +1113,66 @@ const EXERCISES = [
 // ── Push / Pull / Legs grouping ──────────────────────────────────────────────
 const EX_PPL = {
   // PUSH — Chest
-  "Bench Press":         {ppl:"push",sub:"Chest"},
-  "Incline Bench Press": {ppl:"push",sub:"Chest"},
-  "Decline Bench Press": {ppl:"push",sub:"Chest"},
-  "Chest Fly":           {ppl:"push",sub:"Chest"},
-  "Dip":                 {ppl:"push",sub:"Chest"},
+  "Barbell Bench Press":         {ppl:"push",sub:"Chest"},
+  "Dumbbell Bench Press":        {ppl:"push",sub:"Chest"},
+  "Barbell Incline Bench Press": {ppl:"push",sub:"Chest"},
+  "Dumbbell Incline Bench Press":{ppl:"push",sub:"Chest"},
+  "Barbell Decline Bench Press": {ppl:"push",sub:"Chest"},
+  "Dumbbell Decline Bench Press":{ppl:"push",sub:"Chest"},
+  "Dumbbell Chest Fly":          {ppl:"push",sub:"Chest"},
+  "Cable Fly":                   {ppl:"push",sub:"Chest"},
+  "Dip":                         {ppl:"push",sub:"Chest"},
+  "Push-Up":                     {ppl:"push",sub:"Chest"},
   // PUSH — Shoulders
-  "Overhead Press":      {ppl:"push",sub:"Shoulders"},
-  "Lateral Raise":       {ppl:"push",sub:"Shoulders"},
-  "Handstand Push-Up":   {ppl:"push",sub:"Shoulders"},
-  "Planche":             {ppl:"push",sub:"Shoulders"},
+  "Barbell Overhead Press":      {ppl:"push",sub:"Shoulders"},
+  "Dumbbell Overhead Press":     {ppl:"push",sub:"Shoulders"},
+  "Seated Barbell Press":        {ppl:"push",sub:"Shoulders"},
+  "Seated Dumbbell Press":       {ppl:"push",sub:"Shoulders"},
+  "Arnold Press":                {ppl:"push",sub:"Shoulders"},
+  "Lateral Raise":               {ppl:"push",sub:"Shoulders"},
+  "Cable Lateral Raise":         {ppl:"push",sub:"Shoulders"},
+  "Handstand Push-Up":           {ppl:"push",sub:"Shoulders"},
+  "Planche":                     {ppl:"push",sub:"Shoulders"},
   // PUSH — Triceps
-  "Tricep Pushdown":     {ppl:"push",sub:"Triceps"},
-  "Skull Crusher":       {ppl:"push",sub:"Triceps"},
+  "Tricep Pushdown":             {ppl:"push",sub:"Triceps"},
+  "Overhead Tricep Extension":   {ppl:"push",sub:"Triceps"},
+  "Skull Crusher":               {ppl:"push",sub:"Triceps"},
+  "Close-Grip Bench Press":      {ppl:"push",sub:"Triceps"},
   // PULL — Back
-  "Barbell Row":         {ppl:"pull",sub:"Back"},
-  "Lat Pulldown":        {ppl:"pull",sub:"Back"},
-  "Cable Row":           {ppl:"pull",sub:"Back"},
-  "Pull-Up":             {ppl:"pull",sub:"Back"},
-  "Ring Row":            {ppl:"pull",sub:"Back"},
-  "Muscle-Up":           {ppl:"pull",sub:"Back"},
-  "Front Lever":         {ppl:"pull",sub:"Back"},
+  "Barbell Row":                 {ppl:"pull",sub:"Back"},
+  "Dumbbell Row":                {ppl:"pull",sub:"Back"},
+  "T-Bar Row":                   {ppl:"pull",sub:"Back"},
+  "Lat Pulldown":                {ppl:"pull",sub:"Back"},
+  "Cable Row":                   {ppl:"pull",sub:"Back"},
+  "Pull-Up":                     {ppl:"pull",sub:"Back"},
+  "Ring Row":                    {ppl:"pull",sub:"Back"},
+  "Muscle-Up":                   {ppl:"pull",sub:"Back"},
+  "Front Lever":                 {ppl:"pull",sub:"Back"},
   // PULL — Biceps
-  "Dumbbell Curl":       {ppl:"pull",sub:"Biceps"},
-  "Hammer Curl":         {ppl:"pull",sub:"Biceps"},
+  "Barbell Curl":                {ppl:"pull",sub:"Biceps"},
+  "Dumbbell Curl":               {ppl:"pull",sub:"Biceps"},
+  "Hammer Curl":                 {ppl:"pull",sub:"Biceps"},
+  "Preacher Curl":               {ppl:"pull",sub:"Biceps"},
+  "Cable Curl":                  {ppl:"pull",sub:"Biceps"},
   // PULL — Rear Shoulder
-  "Face Pull":           {ppl:"pull",sub:"Rear Shoulder"},
-  "Rear Delt Raise":     {ppl:"pull",sub:"Rear Shoulder"},
+  "Face Pull":                   {ppl:"pull",sub:"Rear Shoulder"},
+  "Rear Delt Raise":             {ppl:"pull",sub:"Rear Shoulder"},
+  "Cable Rear Delt Fly":         {ppl:"pull",sub:"Rear Shoulder"},
   // LEGS
-  "Squat":               {ppl:"legs",sub:"Legs"},
-  "Deadlift":            {ppl:"legs",sub:"Legs"},
-  "Romanian Deadlift":   {ppl:"legs",sub:"Legs"},
-  "Leg Press":           {ppl:"legs",sub:"Legs"},
-  "Hip Thrust":          {ppl:"legs",sub:"Legs"},
-  "Leg Curl":            {ppl:"legs",sub:"Legs"},
-  "Leg Extension":       {ppl:"legs",sub:"Legs"},
-  "Calf Raise":          {ppl:"legs",sub:"Legs"},
-  "Pistol Squat":        {ppl:"legs",sub:"Legs"},
-  "Nordic Curl":         {ppl:"legs",sub:"Legs"},
-  "Box Jump":            {ppl:"legs",sub:"Legs"},
+  "Squat":                      {ppl:"legs",sub:"Legs"},
+  "Front Squat":                {ppl:"legs",sub:"Legs"},
+  "Goblet Squat":               {ppl:"legs",sub:"Legs"},
+  "Deadlift":                   {ppl:"legs",sub:"Legs"},
+  "Romanian Deadlift":          {ppl:"legs",sub:"Legs"},
+  "Dumbbell Romanian Deadlift": {ppl:"legs",sub:"Legs"},
+  "Leg Press":                  {ppl:"legs",sub:"Legs"},
+  "Hip Thrust":                 {ppl:"legs",sub:"Legs"},
+  "Leg Curl":                   {ppl:"legs",sub:"Legs"},
+  "Leg Extension":              {ppl:"legs",sub:"Legs"},
+  "Calf Raise":                 {ppl:"legs",sub:"Legs"},
+  "Pistol Squat":               {ppl:"legs",sub:"Legs"},
+  "Nordic Curl":                {ppl:"legs",sub:"Legs"},
+  "Box Jump":                   {ppl:"legs",sub:"Legs"},
   // CORE
   "Plank":               {ppl:"core",sub:"Core"},
   "Hanging Leg Raise":   {ppl:"core",sub:"Core"},
@@ -1116,30 +1215,39 @@ function getExPPL(ex) {
 }
 
 const REST_TIMES = {
-  // Heavy compounds (3 min)
-  "Squat":180,"Deadlift":180,"Bench Press":180,"Overhead Press":180,
-  "Barbell Row":180,"Romanian Deadlift":150,
-  // Moderate compounds (2 min)
-  "Incline Bench Press":120,"Decline Bench Press":120,"Leg Press":120,
-  "Lat Pulldown":120,"Cable Row":120,"Hip Thrust":120,
+  // Heavy compounds — 3 min
+  "Squat":180,"Front Squat":180,"Deadlift":180,
+  "Barbell Bench Press":180,"Barbell Overhead Press":180,
+  "Barbell Row":180,"T-Bar Row":180,"Romanian Deadlift":150,
+  // Moderate compounds — 2 min
+  "Barbell Incline Bench Press":120,"Dumbbell Incline Bench Press":120,
+  "Barbell Decline Bench Press":120,"Dumbbell Decline Bench Press":120,
+  "Dumbbell Bench Press":120,"Dumbbell Overhead Press":120,
+  "Seated Barbell Press":120,"Seated Dumbbell Press":120,
+  "Dumbbell Row":120,"Goblet Squat":120,
+  "Dumbbell Romanian Deadlift":120,
+  "Leg Press":120,"Lat Pulldown":120,"Cable Row":120,"Hip Thrust":120,
+  "Close-Grip Bench Press":120,
   // Calisthenics compounds
   "Pull-Up":120,"Dip":120,"Ring Row":120,"Muscle-Up":150,
   "Handstand Push-Up":150,"Front Lever":150,"Planche":150,
   "Pistol Squat":120,"Nordic Curl":120,
-  // Isolation (60-90s)
-  "Dumbbell Curl":60,"Hammer Curl":60,"Tricep Pushdown":60,
-  "Skull Crusher":75,"Lateral Raise":60,"Face Pull":60,"Rear Delt Raise":60,
+  // Isolation — 60-90s
+  "Barbell Curl":60,"Dumbbell Curl":60,"Hammer Curl":60,
+  "Preacher Curl":60,"Cable Curl":60,
+  "Tricep Pushdown":60,"Overhead Tricep Extension":60,"Skull Crusher":75,
+  "Lateral Raise":60,"Cable Lateral Raise":60,
+  "Arnold Press":75,
+  "Face Pull":60,"Rear Delt Raise":60,"Cable Rear Delt Fly":60,
   "Leg Curl":60,"Leg Extension":60,"Calf Raise":60,
-  "Chest Fly":60,"L-Sit":60,
-  // Core (45-60s)
+  "Dumbbell Chest Fly":60,"Cable Fly":60,"L-Sit":60,
+  // Core — 45-60s
   "Plank":45,"Hanging Leg Raise":60,"Ab Wheel Rollout":60,
   "Cable Crunch":45,"Russian Twist":45,"Dead Bug":45,
-  "Pallof Press":45,"Hollow Body Hold":45,"Side Plank":45,
-  "Dragon Flag":60,
-  // Cardio (30-60s)
+  "Pallof Press":45,"Hollow Body Hold":45,"Side Plank":45,"Dragon Flag":60,
+  // Cardio — 30-60s
   "Running":30,"Cycling":30,"Rowing Machine":30,"Jump Rope":30,
-  "Burpees":60,"Box Jump":60,"Battle Ropes":45,
-  "Swimming":30,"Stair Climber":30,
+  "Burpees":60,"Box Jump":60,"Battle Ropes":45,"Swimming":30,"Stair Climber":30,
 };
 function getRestTime(exerciseName) {
   const custom = customExercises.find(e => e.name === exerciseName);
@@ -1219,7 +1327,27 @@ function setQuote(textId, authorId, cardId) {
 }
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
-let workouts        = JSON.parse(localStorage.getItem("gymlog_workouts")  || "[]");
+// ── One-time migration: rename generic exercise names to specific variants ──────
+const EXERCISE_RENAMES = {
+  "Bench Press":         "Barbell Bench Press",
+  "Incline Bench Press": "Barbell Incline Bench Press",
+  "Decline Bench Press": "Barbell Decline Bench Press",
+  "Overhead Press":      "Barbell Overhead Press",
+  "Chest Fly":           "Dumbbell Chest Fly",
+};
+function migrateExerciseNames(data) {
+  let changed = false;
+  data.forEach(w => {
+    if (EXERCISE_RENAMES[w.exercise]) {
+      w.exercise = EXERCISE_RENAMES[w.exercise];
+      changed = true;
+    }
+  });
+  if (changed) localStorage.setItem("gymlog_workouts", JSON.stringify(data));
+  return data;
+}
+
+let workouts        = migrateExerciseNames(JSON.parse(localStorage.getItem("gymlog_workouts") || "[]"));
 let bodyWeights     = JSON.parse(localStorage.getItem("gymlog_bw")        || "[]");
 let customExercises = JSON.parse(localStorage.getItem("gymlog_custom")    || "[]");
 let bodyRange = 7;
@@ -1235,6 +1363,247 @@ const saveAll = () => {
 };
 const getAllExercises = () => [...EXERCISES, ...customExercises];
 
+// ─── TUTORIAL ────────────────────────────────────────────────────────────────
+const TUTORIAL_STEPS = {
+  en: [
+    { icon:"💪", title:"Welcome to Gym Tracker",
+      body:"Track every workout, monitor your progress, and crush your PRs. This quick tour shows you the key features — takes about 1 minute." },
+    { icon:"➕", title:"Log Your Workout",
+      body:"Tap <b>+ Add Exercise</b> to start. Choose from Push / Pull / Legs categories. Enter weight → reps → notes, then press <b>Enter</b> to auto-start the rest timer." },
+    { icon:"⏱", title:"Smart Rest Timer",
+      body:"The timer starts automatically after each set with a rest time based on the exercise (e.g. Squat = 3 min, Curls = 60s). A motivational quote plays when time is up." },
+    { icon:"📋", title:"History & Edit",
+      body:"View all past sessions in <b>History</b>. Tap <b>✏️ Edit</b> on any exercise to fix weight, reps, or date. Filter by Push / Pull / Legs." },
+    { icon:"📈", title:"Progress & Body Map",
+      body:"<b>Progress</b> shows 1RM charts, volume, and streak calendar. <b>Body Map</b> highlights which muscles you've trained, weighted by primary and secondary activation." },
+    { icon:"☁️", title:"Cloud Sync",
+      body:"Sync your data across all devices for free using Supabase. Go to <b>Settings → Cloud Sync</b>, sign up, and run the one-time SQL setup." },
+    { icon:"🏆", title:"You're All Set!",
+      body:"Beat your PRs to earn gold awards. Beat your last session for a green award. The iron never lies — now go forge yourself." },
+  ],
+  ja: [
+    { icon:"💪", title:"Gym Trackerへようこそ",
+      body:"トレーニングを記録し、進捗を管理し、PRを更新しよう。このツアーは約1分で主要な機能を紹介します。" },
+    { icon:"➕", title:"ワークアウトを記録する",
+      body:"<b>＋ 種目を追加</b>をタップ。Push / Pull / Legsから種目を選択。重量 → レップ → ノートを入力し、<b>Enter</b>でタイマーが自動スタート。" },
+    { icon:"⏱", title:"スマートレストタイマー",
+      body:"セット終了後に自動でタイマーが起動。種目に応じたレスト時間が設定されています（スクワット＝3分、カール＝60秒など）。終了時に名言が読み上げられます。" },
+    { icon:"📋", title:"履歴と編集",
+      body:"<b>履歴</b>で過去のセッションを確認。<b>✏️ Edit</b>ボタンで重量・レップ・日付をいつでも修正可能。Push / Pull / Legsでフィルターも可能。" },
+    { icon:"📈", title:"進捗とボディマップ",
+      body:"<b>進捗</b>では1RMグラフ・ボリューム・連続記録を確認。<b>ボディマップ</b>では主動筋・補助筋の比率で色分けされた筋肉図を確認できます。" },
+    { icon:"☁️", title:"クラウド同期",
+      body:"Supabase（無料）を使って複数デバイスでデータを同期。<b>設定 → クラウド同期</b>でサインアップし、ワンタイムSQLをセットアップするだけ。" },
+    { icon:"🏆", title:"準備完了！",
+      body:"PRを更新するとゴールドアワード。前回記録を超えるとグリーンアワード。鉄は嘘をつかない — 自分を鍛え上げよう。" },
+  ]
+};
+
+let tutLang = localStorage.getItem("gymlog_lang") || "en";
+let tutCurrent = 0;
+
+function openTutorial() {
+  tutCurrent = 0;
+  document.getElementById("tut-overlay").style.display = "flex";
+  setTutLang(tutLang, false);
+  renderTutStep();
+}
+function closeTutorial() {
+  document.getElementById("tut-overlay").style.display = "none";
+  localStorage.setItem("gymlog_tutorial_done", "1");
+}
+function setTutLang(lang, rerender = true) {
+  tutLang = lang;
+  localStorage.setItem("gymlog_lang", lang);
+  document.getElementById("tut-en-btn").classList.toggle("active", lang === "en");
+  document.getElementById("tut-ja-btn").classList.toggle("active", lang === "ja");
+  applyLanguage(lang);
+  if (rerender) renderTutStep();
+}
+function tutStep(dir) {
+  const steps = TUTORIAL_STEPS[tutLang];
+  tutCurrent = Math.max(0, Math.min(steps.length - 1, tutCurrent + dir));
+  if (dir > 0 && tutCurrent === steps.length - 1 && dir === 1) {
+    // already at last — clicking Next = done
+  }
+  renderTutStep();
+  // if was at last step and clicked next, close
+  if (dir > 0 && tutCurrent >= steps.length - 1) {
+    const nextBtn = document.getElementById("tut-next");
+    nextBtn.textContent = tutLang === "ja" ? "始める 🚀" : "Let's Go 🚀";
+    nextBtn.onclick = closeTutorial;
+  }
+}
+function renderTutStep() {
+  const steps = TUTORIAL_STEPS[tutLang];
+  const s = steps[tutCurrent];
+  document.getElementById("tut-icon").textContent  = s.icon;
+  document.getElementById("tut-title").textContent = s.title;
+  document.getElementById("tut-body").innerHTML    = s.body;
+  // Progress bar
+  document.getElementById("tut-bar").style.width = `${((tutCurrent + 1) / steps.length) * 100}%`;
+  // Dots
+  document.getElementById("tut-dots").innerHTML = steps.map((_, i) =>
+    `<div class="tut-dot${i === tutCurrent ? " active" : ""}"></div>`).join("");
+  // Buttons
+  const backBtn = document.getElementById("tut-back");
+  const nextBtn = document.getElementById("tut-next");
+  const skipBtn = document.getElementById("tut-skip-btn");
+  backBtn.style.visibility = tutCurrent === 0 ? "hidden" : "visible";
+  if (tutCurrent >= steps.length - 1) {
+    nextBtn.textContent = tutLang === "ja" ? "始める 🚀" : "Let's Go 🚀";
+    nextBtn.onclick = closeTutorial;
+  } else {
+    nextBtn.textContent = tutLang === "ja" ? "次へ →" : "Next →";
+    nextBtn.onclick = () => tutStep(1);
+  }
+  backBtn.textContent = tutLang === "ja" ? "← 戻る" : "← Back";
+  skipBtn.textContent = tutLang === "ja" ? "スキップ ✕" : "Skip ✕";
+}
+
+// ─── I18N ─────────────────────────────────────────────────────────────────────
+const I18N = {
+  en: {
+    // Nav
+    nav_log:"Log Workout", nav_history:"History", nav_progress:"Progress",
+    nav_body:"Body Map",   nav_settings:"Settings",
+    // Page titles
+    page_log_title:"Log Workout",
+    page_log_sub:"Fill in your exercises continuously — save everything at the end",
+    page_history_title:"History", page_history_sub:"All logged sessions",
+    page_progress_title:"Progress", page_body_title:"Body Map",
+    page_settings_title:"Manage Exercises",
+    page_settings_sub:"Add custom exercises with your own muscle mappings",
+    // Log page
+    lbl_date:"Date",
+    btn_save:"💾 Save Session", btn_add_ex:"Add Exercise",
+    btn_discard:"Discard All", btn_rest_timer:"⏱ Rest Timer",
+    // Exercise block
+    col_weight:"Weight kg", col_reps:"Reps", col_notes:"Notes",
+    btn_add_set:"+ Add Set",
+    select_ex:"— Select exercise —",
+    filter_all:"All",
+    sort_default:"↕ Default", sort_alpha:"🔤 A – Z",
+    sort_used:"⭐ Most Used", sort_recent:"🕒 Recent",
+    // History filters
+    hist_all:"All", hist_weights:"Weights",
+    hist_calisthenics:"Calisthenics", hist_core:"Core", hist_cardio:"Cardio",
+    // Progress tabs
+    tab_perf:"Performance", tab_bw:"Body Weight", tab_streak:"Streak",
+    // Settings
+    lbl_cloud_sync:"☁️ Cloud Sync",
+    lbl_timer_alarm:"⏱ Timer Alarm",
+    lbl_language:"🌐 Language",
+    lbl_custom_ex:"New Custom Exercise",
+    tut_btn:"Show Tutorial Again",
+    // Tutorial
+    tut_title_btn:"❓ Tutorial",
+  },
+  ja: {
+    // Nav
+    nav_log:"記録", nav_history:"履歴", nav_progress:"進捗",
+    nav_body:"ボディマップ", nav_settings:"設定",
+    // Page titles
+    page_log_title:"ワークアウトを記録",
+    page_log_sub:"種目を全て入力してから最後にまとめて保存",
+    page_history_title:"履歴", page_history_sub:"過去のセッション一覧",
+    page_progress_title:"進捗", page_body_title:"ボディマップ",
+    page_settings_title:"種目の管理",
+    page_settings_sub:"カスタム種目と筋肉マッピングを設定",
+    // Log page
+    lbl_date:"日付",
+    btn_save:"💾 保存", btn_add_ex:"種目を追加",
+    btn_discard:"破棄", btn_rest_timer:"⏱ タイマー",
+    // Exercise block
+    col_weight:"重量 kg", col_reps:"回数", col_notes:"メモ",
+    btn_add_set:"+ セット追加",
+    select_ex:"— 種目を選択 —",
+    filter_all:"全て",
+    sort_default:"↕ 並び順", sort_alpha:"🔤 A – Z",
+    sort_used:"⭐ よく使う", sort_recent:"🕒 最近",
+    // History filters
+    hist_all:"全て", hist_weights:"ウェイト",
+    hist_calisthenics:"自重", hist_core:"体幹", hist_cardio:"有酸素",
+    // Progress tabs
+    tab_perf:"パフォーマンス", tab_bw:"体重", tab_streak:"連続記録",
+    // Settings
+    lbl_cloud_sync:"☁️ クラウド同期",
+    lbl_timer_alarm:"⏱ タイマーアラーム",
+    lbl_language:"🌐 言語",
+    lbl_custom_ex:"カスタム種目を追加",
+    tut_btn:"チュートリアルをもう一度見る",
+    // Tutorial
+    tut_title_btn:"❓ 使い方",
+  }
+};
+
+// t() — translate helper for JS-generated HTML
+function tl(key) { return (I18N[tutLang] || I18N.en)[key] || key; }
+
+function applyLanguage(lang) {
+  const L = I18N[lang] || I18N.en;
+  // Static data-i18n elements
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.dataset.i18n;
+    if (L[key] !== undefined) el.textContent = L[key];
+  });
+  // Tutorial nav button
+  const tutNavBtn = document.getElementById("tut-nav-btn");
+  if (tutNavBtn) tutNavBtn.textContent = L.tut_title_btn;
+  // Settings re-show button
+  const tutBtn = document.getElementById("settings-tut-btn");
+  if (tutBtn) tutBtn.textContent = L.tut_btn;
+  // Settings language buttons highlight
+  const enBtn = document.getElementById("lang-en-btn");
+  const jaBtn = document.getElementById("lang-ja-btn");
+  if (enBtn && jaBtn) {
+    enBtn.style.borderColor = lang === "en" ? "var(--accent)" : "var(--border)";
+    enBtn.style.background  = lang === "en" ? "rgba(108,99,255,.15)" : "transparent";
+    enBtn.style.color       = lang === "en" ? "var(--accent)" : "var(--muted)";
+    jaBtn.style.borderColor = lang === "ja" ? "var(--accent)" : "var(--border)";
+    jaBtn.style.background  = lang === "ja" ? "rgba(108,99,255,.15)" : "transparent";
+    jaBtn.style.color       = lang === "ja" ? "var(--accent)" : "var(--muted)";
+  }
+  // History filter chips
+  const hchips = document.querySelectorAll(".hist-filter-chip");
+  const hkeys  = ["hist_all","hist_weights","hist_calisthenics","hist_core","hist_cardio"];
+  hchips.forEach((c,i) => { if (L[hkeys[i]]) c.textContent = L[hkeys[i]]; });
+  // Progress tabs
+  [["tab-btn-perf","tab_perf"],["tab-btn-bw","tab_bw"],["tab-btn-streak","tab_streak"]].forEach(([id,k]) => {
+    const el = document.getElementById(id); if (el && L[k]) el.textContent = L[k];
+  });
+  // Re-render all exercise blocks so headers + select placeholder update
+  document.querySelectorAll(".ex-block").forEach(block => {
+    const bid = block.id.replace("block-","");
+    refreshBlockLabels(bid);
+    populateBlockEx(bid);
+  });
+}
+function setAppLang(lang) {
+  tutLang = lang;
+  localStorage.setItem("gymlog_lang", lang);
+  applyLanguage(lang);
+  showToast(lang === "ja" ? "🇯🇵 日本語に変更しました" : "🇺🇸 Switched to English");
+}
+// Update column headers and buttons inside a block
+function refreshBlockLabels(bid) {
+  const hdr = document.getElementById(`sets-hdr-${bid}`);
+  if (hdr) hdr.innerHTML =
+    `<span>#</span><span>${tl('col_weight')}</span><span>${tl('col_reps')}</span><span>${tl('col_notes')}</span><span style="text-align:center;" title="Drop Set">↓DS</span><span></span>`;
+  const addSetBtn = document.getElementById(`add-set-btn-${bid}`);
+  if (addSetBtn) addSetBtn.textContent = tl('btn_add_set');
+  // Sort cycle button label sync
+  const sortBtn = document.getElementById(`exsort-${bid}`);
+  if (sortBtn) {
+    const cur = sortBtn.dataset.sort || "default";
+    const map = {default:"sort_default",alpha:"sort_alpha",used:"sort_used",recent:"sort_recent"};
+    sortBtn.textContent = tl(map[cur] || "sort_default");
+  }
+  // PPL filter "All" option
+  const pplSel = document.getElementById(`exppl-${bid}`);
+  if (pplSel && pplSel.options[0]) pplSel.options[0].text = tl('filter_all');
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("log-date").value = today();
   document.getElementById("bw-date").value  = today();
@@ -1246,6 +1615,14 @@ document.addEventListener("DOMContentLoaded", () => {
   setQuote("sidebar-quote-text", "sidebar-quote-author", null);
   // Initialize Supabase if credentials are saved
   initSupabase().catch(() => {});
+  // Language
+  const savedLang = localStorage.getItem("gymlog_lang") || "en";
+  tutLang = savedLang;
+  applyLanguage(savedLang);
+  // Show tutorial on first open
+  if (!localStorage.getItem("gymlog_tutorial_done")) {
+    setTimeout(() => openTutorial(), 400);
+  }
 });
 
 
@@ -1265,19 +1642,14 @@ function addBlock(scroll = true) {
     <div class="ex-block-header">
       <div class="ex-block-num">${blockCount}</div>
       <select id="exppl-${bid}" style="max-width:82px;padding:6px 6px;font-size:.78rem;" onchange="populateBlockEx('${bid}')">
-        <option value="">All</option>
+        <option value="">${tl('filter_all')}</option>
         <option value="push">🔴 Push</option>
         <option value="pull">🔵 Pull</option>
         <option value="legs">🟢 Legs</option>
         <option value="core">⚪ Core</option>
         <option value="cardio">🟡 Cardio</option>
       </select>
-      <select id="exsort-${bid}" style="max-width:90px;padding:6px 6px;font-size:.78rem;" onchange="populateBlockEx('${bid}')">
-        <option value="default">Order ▾</option>
-        <option value="alpha">A – Z</option>
-        <option value="used">Most Used</option>
-        <option value="recent">Recent</option>
-      </select>
+      <button id="exsort-${bid}" data-sort="default" onclick="cycleSortMode('${bid}')" style="padding:6px 9px;font-size:.75rem;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .15s;">${tl('sort_used')}</button>
       <input type="text" id="exsearch-${bid}" placeholder="🔍" style="max-width:72px;padding:6px 8px;font-size:.8rem;" oninput="populateBlockEx('${bid}')">
       <button class="icon-btn del-btn" onclick="removeBlock('${bid}')" title="Remove exercise" style="margin-left:auto;">✕</button>
     </div>
@@ -1285,11 +1657,11 @@ function addBlock(scroll = true) {
       <select id="exname-${bid}" style="width:100%;padding:8px 10px;font-size:.88rem;" onchange="updateBlockInfo('${bid}')"></select>
     </div>
     <div class="ex-info" id="info-${bid}"></div>
-    <div class="sets-header" style="margin-top:4px;">
-      <span>#</span><span>Weight kg</span><span>Reps</span><span>Notes</span><span style="text-align:center;" title="Drop Set">↓DS</span><span></span>
+    <div class="sets-header" id="sets-hdr-${bid}" style="margin-top:4px;">
+      <span>#</span><span>${tl('col_weight')}</span><span>${tl('col_reps')}</span><span>${tl('col_notes')}</span><span style="text-align:center;" title="Drop Set">↓DS</span><span></span>
     </div>
     <div id="sets-body-${bid}"></div>
-    <button class="btn-add-set" onclick="addSetToBlock('${bid}')">+ Add Set</button>`;
+    <button id="add-set-btn-${bid}" class="btn-add-set" onclick="addSetToBlock('${bid}')">${tl('btn_add_set')}</button>`;
   container.appendChild(div);
 
   populateBlockEx(bid);
@@ -1311,7 +1683,7 @@ function populateBlockEx(bid) {
   if (!sel) return;
   const cur       = sel.value;
   const pplFilter = document.getElementById(`exppl-${bid}`)?.value  || "";
-  const sortMode  = document.getElementById(`exsort-${bid}`)?.value || "default";
+  const sortMode  = document.getElementById(`exsort-${bid}`)?.dataset.sort || "default";
   const searchQ   = (document.getElementById(`exsearch-${bid}`)?.value || "").toLowerCase();
 
   // Base list filtered by PPL and search
@@ -1319,7 +1691,7 @@ function populateBlockEx(bid) {
   if (pplFilter) list = list.filter(e => getExPPL(e).ppl === pplFilter);
   if (searchQ)   list = list.filter(e => e.name.toLowerCase().includes(searchQ));
 
-  sel.innerHTML = '<option value="">— Select exercise —</option>';
+  sel.innerHTML = `<option value="">${tl('select_ex')}</option>`;
 
   if (sortMode === "used" || sortMode === "recent") {
     // Compute stats from workout history
@@ -1360,9 +1732,8 @@ function populateBlockEx(bid) {
       const key = `${ppl}||${sub}`;
       (grouped[key] = grouped[key] || {ppl, sub, items:[]}).items.push(ex);
     });
-    if (sortMode === "alpha") {
-      Object.values(grouped).forEach(g => g.items.sort((a,b) => a.name.localeCompare(b.name)));
-    }
+    // Always sort A-Z within each group (alpha mode keeps this, default also uses it)
+    Object.values(grouped).forEach(g => g.items.sort((a,b) => a.name.localeCompare(b.name)));
     PPL_ORDER.forEach(ppl => {
       if (pplFilter && ppl !== pplFilter) return;
       const knownSubs = PPL_SUBS[ppl] || [];
@@ -1418,6 +1789,25 @@ function updateBlockInfo(bid) {
 // filterBlockEx and searchBlockEx now unified into populateBlockEx
 function filterBlockEx(bid) { populateBlockEx(bid); }
 function searchBlockEx(bid)  { populateBlockEx(bid); }
+
+const SORT_CYCLE = [
+  {val:"used",    key:"sort_used",    color:"var(--gold)"},
+  {val:"recent",  key:"sort_recent",  color:"var(--green)"},
+  {val:"alpha",   key:"sort_alpha",   color:"var(--accent)"},
+  {val:"default", key:"sort_default", color:"var(--muted)"},
+];
+function cycleSortMode(bid) {
+  const btn = document.getElementById(`exsort-${bid}`);
+  if (!btn) return;
+  const cur = btn.dataset.sort || "default";
+  const curIdx = SORT_CYCLE.findIndex(s => s.val === cur);
+  const next = SORT_CYCLE[(curIdx + 1) % SORT_CYCLE.length];
+  btn.dataset.sort = next.val;
+  btn.textContent  = tl(next.key);
+  btn.style.color  = next.color;
+  btn.style.borderColor = next.color;
+  populateBlockEx(bid);
+}
 
 function addSetToBlock(bid) {
   const exSel = document.getElementById(`exname-${bid}`);
