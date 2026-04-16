@@ -41,14 +41,16 @@ select option,optgroup{background:var(--surface2);}
 .btn-danger{background:transparent;color:var(--red);border:1px solid var(--border);}
 .btn-danger:hover{background:rgba(248,113,113,.1);}
 /* Sets */
-.sets-header{display:grid;grid-template-columns:32px 1fr 1fr 1fr 44px 32px;gap:7px;padding:0 2px;margin-bottom:5px;}
+.sets-header{display:grid;grid-template-columns:32px 1fr 1fr 1fr 44px 32px 32px;gap:7px;padding:0 2px;margin-bottom:5px;}
 .sets-header span{font-size:.72rem;color:var(--muted);text-transform:uppercase;}
-.set-row{display:grid;grid-template-columns:32px 1fr 1fr 1fr 44px 32px;gap:7px;align-items:center;margin-bottom:5px;}
+.set-row{display:grid;grid-template-columns:32px 1fr 1fr 1fr 44px 32px 32px;gap:7px;align-items:center;margin-bottom:5px;}
 .set-num{width:28px;height:28px;background:var(--surface2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.78rem;color:var(--muted);}
 .set-row input{padding:7px 8px;text-align:center;}
 .icon-btn{width:28px;height:28px;border-radius:6px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.78rem;transition:all .15s;}
 .ds-btn{background:var(--surface2);color:var(--muted);}
 .ds-btn.active{background:rgba(251,146,60,.2);color:var(--orange);font-weight:700;}
+.rip-btn{background:var(--surface2);color:var(--muted);font-size:.7rem;}
+.rip-btn.active{background:rgba(248,113,113,.2);color:var(--red);font-weight:700;}
 .del-btn{background:rgba(248,113,113,.12);color:var(--red);}
 .btn-add-set{background:rgba(108,99,255,.1);color:var(--accent);border:1px dashed rgba(108,99,255,.4);width:100%;padding:7px;border-radius:8px;cursor:pointer;font-size:.83rem;margin-top:7px;transition:all .15s;}
 .btn-add-set:hover{background:rgba(108,99,255,.2);}
@@ -166,14 +168,16 @@ select option,optgroup{background:var(--surface2);}
 .edit-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:950;display:flex;align-items:center;justify-content:center;padding:16px;}
 .edit-modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;}
 .edit-modal-title{font-size:1.05rem;font-weight:700;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;}
-.edit-set-row{display:grid;grid-template-columns:1fr 1fr 2fr 32px;gap:7px;align-items:center;margin-bottom:7px;}
+.edit-set-row{display:grid;grid-template-columns:1fr 1fr 2fr 68px;gap:7px;align-items:center;margin-bottom:7px;}
 .edit-set-row input{padding:7px 8px;text-align:center;font-size:.85rem;}
 .edit-set-row input.note-input{text-align:left;}
 .edit-drop-toggle{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;}
 .edit-drop-toggle.active{background:rgba(251,146,60,.2);color:var(--orange);border-color:var(--orange);}
+.edit-rip-toggle{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;}
+.edit-rip-toggle.active{background:rgba(248,113,113,.2);color:var(--red);border-color:var(--red);}
 .edit-set-del{width:28px;height:28px;border-radius:6px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:.85rem;transition:color .15s;}
 .edit-set-del:hover{color:var(--red);}
-.edit-sets-header{display:grid;grid-template-columns:1fr 1fr 2fr 32px;gap:7px;margin-bottom:4px;}
+.edit-sets-header{display:grid;grid-template-columns:1fr 1fr 2fr 68px;gap:7px;margin-bottom:4px;}
 .edit-sets-header span{font-size:.7rem;color:var(--muted);text-transform:uppercase;text-align:center;}
 .custom-list{display:flex;flex-direction:column;gap:8px;}
 .custom-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;}
@@ -247,6 +251,7 @@ select option,optgroup{background:var(--surface2);}
   .main{padding:14px;}
   .sets-header span:nth-child(2){font-size:0;}
   .sets-header span:nth-child(2)::after{content:"KG";font-size:.72rem;}
+  .rip-btn{font-size:.65rem;}
 }
 </style>
 </head>
@@ -673,7 +678,7 @@ select option,optgroup{background:var(--surface2);}
       </div>
     </div>
     <div class="edit-sets-header">
-      <span>Weight (kg)</span><span>Reps</span><span>Note</span><span></span>
+      <span>Weight (kg)</span><span>Reps</span><span>Note</span><span style="text-align:center;">↓DS 💀</span>
     </div>
     <div id="edit-sets-body"></div>
     <button onclick="editAddSet()" class="btn btn-ghost" style="width:100%;margin-top:6px;font-size:.82rem;">＋ Add Set</button>
@@ -1105,6 +1110,101 @@ const EXERCISES = [
   // Stair Climber: quads & glutes co-primary; hamstrings secondary; calves tertiary
   {name:"Stair Climber",       cat:"cardio",      muscles:["quads","glutes","hamstrings","calves"]},
 ];
+
+// ── Japanese exercise name translations ─────────────────────────────────────
+const EX_JA = {
+  // Chest (Push)
+  "Barbell Bench Press":          "バーベルベンチプレス",
+  "Dumbbell Bench Press":         "ダンベルベンチプレス",
+  "Barbell Incline Bench Press":  "インクラインバーベルベンチプレス",
+  "Dumbbell Incline Bench Press": "インクラインダンベルベンチプレス",
+  "Barbell Decline Bench Press":  "デクラインバーベルベンチプレス",
+  "Dumbbell Decline Bench Press": "デクラインダンベルベンチプレス",
+  "Dumbbell Chest Fly":           "ダンベルフライ",
+  "Cable Fly":                    "ケーブルフライ",
+  // Shoulders (Push)
+  "Barbell Overhead Press":       "バーベルショルダープレス",
+  "Dumbbell Overhead Press":      "ダンベルショルダープレス",
+  "Seated Barbell Press":         "シーテッドバーベルプレス",
+  "Seated Dumbbell Press":        "シーテッドダンベルプレス",
+  "Arnold Press":                 "アーノルドプレス",
+  "Lateral Raise":                "サイドレイズ",
+  "Cable Lateral Raise":          "ケーブルサイドレイズ",
+  "Handstand Push-Up":            "倒立腕立て伏せ",
+  "Planche":                      "プランシュ",
+  // Triceps (Push)
+  "Tricep Pushdown":              "トライセップスプッシュダウン",
+  "Overhead Tricep Extension":    "オーバーヘッドトライセップスエクステンション",
+  "Skull Crusher":                "スカルクラッシャー",
+  "Close-Grip Bench Press":       "ナローグリップベンチプレス",
+  // Back (Pull)
+  "Barbell Row":                  "バーベルロウ",
+  "Dumbbell Row":                 "ダンベルロウ",
+  "T-Bar Row":                    "Tバーロウ",
+  "Lat Pulldown":                 "ラットプルダウン",
+  "Cable Row":                    "ケーブルロウ",
+  "Pull-Up":                      "懸垂（プルアップ）",
+  "Ring Row":                     "リングロウ",
+  "Muscle-Up":                    "マッスルアップ",
+  "Front Lever":                  "フロントレバー",
+  // Biceps (Pull)
+  "Barbell Curl":                 "バーベルカール",
+  "Dumbbell Curl":                "ダンベルカール",
+  "Hammer Curl":                  "ハンマーカール",
+  "Preacher Curl":                "プリーチャーカール",
+  "Cable Curl":                   "ケーブルカール",
+  // Rear Shoulder (Pull)
+  "Face Pull":                    "フェイスプル",
+  "Rear Delt Raise":              "リアデルトレイズ",
+  "Cable Rear Delt Fly":          "ケーブルリアデルトフライ",
+  // Legs
+  "Squat":                        "スクワット",
+  "Front Squat":                  "フロントスクワット",
+  "Goblet Squat":                 "ゴブレットスクワット",
+  "Deadlift":                     "デッドリフト",
+  "Romanian Deadlift":            "ルーマニアンデッドリフト",
+  "Dumbbell Romanian Deadlift":   "ダンベルルーマニアンデッドリフト",
+  "Leg Press":                    "レッグプレス",
+  "Hip Thrust":                   "ヒップスラスト",
+  "Leg Curl":                     "レッグカール",
+  "Leg Extension":                "レッグエクステンション",
+  "Calf Raise":                   "カーフレイズ",
+  "Pistol Squat":                 "ピストルスクワット",
+  "Nordic Curl":                  "ノルディックカール",
+  "Box Jump":                     "ボックスジャンプ",
+  // Calisthenics
+  "Push-Up":                      "腕立て伏せ",
+  "Dip":                          "ディップス",
+  "Ring Row":                     "リングロウ",
+  "L-Sit":                        "Lシット",
+  "Hollow Body Hold":             "ホローボディホールド",
+  // Core
+  "Plank":                        "プランク",
+  "Hanging Leg Raise":            "ハンギングレッグレイズ",
+  "Ab Wheel Rollout":             "アブローラー",
+  "Cable Crunch":                 "ケーブルクランチ",
+  "Russian Twist":                "ロシアンツイスト",
+  "Dead Bug":                     "デッドバグ",
+  "Pallof Press":                 "パロフプレス",
+  "Side Plank":                   "サイドプランク",
+  "Dragon Flag":                  "ドラゴンフラッグ",
+  // Cardio
+  "Running":                      "ランニング",
+  "Cycling":                      "サイクリング",
+  "Rowing Machine":               "ローイングマシン",
+  "Jump Rope":                    "縄跳び",
+  "Burpees":                      "バーピー",
+  "Box Jump":                     "ボックスジャンプ",
+  "Battle Ropes":                 "バトルロープ",
+  "Swimming":                     "水泳",
+  "Stair Climber":                "ステアクライマー",
+};
+
+// Returns display name: Japanese (English) when lang=ja, else English
+function exDisplayName(name) {
+  if (tutLang === "ja" && EX_JA[name]) return `${EX_JA[name]}（${name}）`;
+  return name;
+}
 
 // ── Rest times per exercise (seconds) ──────────────────────────────────────
 // Sources: NSCA guidelines, Schoenfeld (2010), Kraemer & Ratamess (2004)
@@ -1582,6 +1682,8 @@ function applyLanguage(lang) {
     refreshBlockLabels(bid);
     populateBlockEx(bid);
   });
+  // Re-render history so exercise names update
+  renderHistory();
 }
 function setAppLang(lang) {
   tutLang = lang;
@@ -1593,7 +1695,7 @@ function setAppLang(lang) {
 function refreshBlockLabels(bid) {
   const hdr = document.getElementById(`sets-hdr-${bid}`);
   if (hdr) hdr.innerHTML =
-    `<span>#</span><span>${tl('col_weight')}</span><span>${tl('col_reps')}</span><span>${tl('col_notes')}</span><span style="text-align:center;" title="Drop Set">↓DS</span><span></span>`;
+    `<span>#</span><span>${tl('col_weight')}</span><span>${tl('col_reps')}</span><span>${tl('col_notes')}</span><span style="text-align:center;" title="Drop Set">↓DS</span><span style="text-align:center;" title="Failed set">💀</span><span></span>`;
   const addSetBtn = document.getElementById(`add-set-btn-${bid}`);
   if (addSetBtn) addSetBtn.textContent = tl('btn_add_set');
   // Sort cycle button label sync
@@ -1662,7 +1764,7 @@ function addBlock(scroll = true) {
     </div>
     <div class="ex-info" id="info-${bid}"></div>
     <div class="sets-header" id="sets-hdr-${bid}" style="margin-top:4px;">
-      <span>#</span><span>${tl('col_weight')}</span><span>${tl('col_reps')}</span><span>${tl('col_notes')}</span><span style="text-align:center;" title="Drop Set">↓DS</span><span></span>
+      <span>#</span><span>${tl('col_weight')}</span><span>${tl('col_reps')}</span><span>${tl('col_notes')}</span><span style="text-align:center;" title="Drop Set">↓DS</span><span style="text-align:center;" title="Failed set">💀</span><span></span>
     </div>
     <div id="sets-body-${bid}"></div>
     <button id="add-set-btn-${bid}" class="btn-add-set" onclick="addSetToBlock('${bid}')">${tl('btn_add_set')}</button>`;
@@ -1693,7 +1795,7 @@ function populateBlockEx(bid) {
   // Base list filtered by PPL and search
   let list = getAllExercises();
   if (pplFilter) list = list.filter(e => getExPPL(e).ppl === pplFilter);
-  if (searchQ)   list = list.filter(e => e.name.toLowerCase().includes(searchQ));
+  if (searchQ)   list = list.filter(e => e.name.toLowerCase().includes(searchQ) || (EX_JA[e.name]||"").includes(searchQ));
 
   sel.innerHTML = `<option value="">${tl('select_ex')}</option>`;
 
@@ -1717,10 +1819,10 @@ function populateBlockEx(bid) {
         const o = document.createElement("option");
         o.value = ex.name;
         o.textContent = sortMode === "used" && useCounts[ex.name]
-          ? `${ex.name}  ×${useCounts[ex.name]}`
+          ? `${exDisplayName(ex.name)}  ×${useCounts[ex.name]}`
           : sortMode === "recent" && lastUsed[ex.name]
-          ? `${ex.name}  ${formatDate(lastUsed[ex.name], true)}`
-          : ex.name;
+          ? `${exDisplayName(ex.name)}  ${formatDate(lastUsed[ex.name], true)}`
+          : exDisplayName(ex.name);
         if (ex.name === cur) o.selected = true;
         g.appendChild(o);
       });
@@ -1752,7 +1854,7 @@ function populateBlockEx(bid) {
         g.label = `${PPL_LABELS[ppl]} — ${sub}`;
         grp.items.forEach(ex => {
           const o = document.createElement("option");
-          o.value = ex.name; o.textContent = ex.name;
+          o.value = ex.name; o.textContent = exDisplayName(ex.name);
           if (ex.name === cur) o.selected = true;
           g.appendChild(o);
         });
@@ -1772,14 +1874,14 @@ function updateBlockInfo(bid) {
   if (!all.length) { info.classList.remove("visible"); info.innerHTML=""; return; }
 
   // PR
-  const pr = Math.max(...all.flatMap(w => w.sets.filter(s=>!s.dropSet).map(s=>calc1RM(s.weight,s.reps))), 0);
-  const prDate = all.filter(w => w.sets.some(s=>!s.dropSet&&Math.abs(calc1RM(s.weight,s.reps)-pr)<0.01))
+  const pr = Math.max(...all.flatMap(w => w.sets.filter(s=>!s.dropSet&&!s.failSet).map(s=>calc1RM(s.weight,s.reps))), 0);
+  const prDate = all.filter(w => w.sets.some(s=>!s.dropSet&&!s.failSet&&Math.abs(calc1RM(s.weight,s.reps)-pr)<0.01))
                     .map(w=>w.date).sort().pop();
 
   // Last session (most recent date)
   const lastDate = [...new Set(all.map(w=>w.date))].sort().pop();
   const lastSets = all.filter(w=>w.date===lastDate).flatMap(w=>w.sets);
-  const lastStr  = lastSets.map(s=>(s.dropSet?"↓":"")+s.weight+"×"+s.reps).join("  ");
+  const lastStr  = lastSets.map(s=>(s.failSet?"💀":(s.dropSet?"↓":""))+s.weight+"×"+s.reps).join("  ");
   const restSec  = getRestTime(exName);
   const restStr  = restSec >= 60 ? `${Math.floor(restSec/60)}m${restSec%60?""+restSec%60+"s":""}` : `${restSec}s`;
 
@@ -1832,6 +1934,7 @@ function addSetToBlock(bid) {
     <input type="number" min="1" step="1"   placeholder="0" id="r-${sid}">
     <input type="text" placeholder="note" id="n-${sid}">
     <button class="icon-btn ds-btn" id="ds-${sid}" onclick="toggleDSBlock('${sid}')" title="Drop set">DS</button>
+    <button class="icon-btn rip-btn" id="rip-${sid}" onclick="toggleRIPBlock('${sid}')" title="Failed / RIP set">💀</button>
     <button class="icon-btn del-btn" onclick="this.closest('.set-row').remove()">✕</button>`;
   body.appendChild(row);
 
@@ -1840,11 +1943,15 @@ function addSetToBlock(bid) {
   const noteEl   = document.getElementById(`n-${sid}`);
 
   const fire = () => {
+    // If the block was removed from DOM (e.g. after saveSession cleared everything),
+    // do nothing — prevents a ghost timer firing 90s after save.
+    if (!document.getElementById(`block-${bid}`)) return;
     const w = parseFloat(weightEl.value) || 0;
     const r = parseInt(repsEl.value) || 0;
     if (r > 0) {
-      // Show 1RM if weight entered
-      if (w > 0) showSetRM(sid, calc1RM(w, r));
+      const isFail = document.getElementById(`rip-${sid}`)?.classList.contains("active");
+      // Show 1RM only for non-failed sets
+      if (w > 0 && !isFail) showSetRM(sid, calc1RM(w, r));
       // Set exercise-specific rest time
       const exName = document.getElementById(`exname-${bid}`)?.value;
       const rest = getRestTime(exName);
@@ -1881,6 +1988,16 @@ function toggleDSBlock(sid) {
   btn.classList.toggle("active", !on);
 }
 
+function toggleRIPBlock(sid) {
+  const row = document.getElementById(`set-${sid}`);
+  const btn = document.getElementById(`rip-${sid}`);
+  const on = row.dataset.rip === "1";
+  row.dataset.rip = on ? "0" : "1";
+  btn.classList.toggle("active", !on);
+  // Dim entire row when failed
+  row.style.opacity = on ? "1" : "0.55";
+}
+
 function collectAllBlocks() {
   const result = [];
   document.querySelectorAll(".ex-block").forEach(block => {
@@ -1894,7 +2011,8 @@ function collectAllBlocks() {
       const r = parseInt(document.getElementById(`r-${sid}`)?.value)   || 0;
       const n = document.getElementById(`n-${sid}`)?.value || "";
       const ds = row.dataset.drop === "1";
-      if (r > 0) sets.push({ weight:w, reps:r, note:n, dropSet:ds });
+      const fs = row.dataset.rip === "1";
+      if (r > 0) sets.push({ weight:w, reps:r, note:n, dropSet:ds, failSet:fs });
     });
     if (sets.length) {
       const ex = getAllExercises().find(e => e.name === exercise);
@@ -1917,13 +2035,19 @@ function saveSession() {
     const prev = workouts.filter(w => w.exercise === item.exercise);
     if (prev.length) {
       prevBest[item.exercise] = Math.max(...prev.flatMap(w =>
-        w.sets.filter(s=>!s.dropSet).map(s=>calc1RM(s.weight,s.reps))), 0);
+        w.sets.filter(s=>!s.dropSet&&!s.failSet).map(s=>calc1RM(s.weight,s.reps))), 0);
     }
   });
 
   blocks.forEach(item => { workouts.push({ id:Date.now()+Math.random(), sessionId, date, ...item }); });
   saveAll();
   const prsAfter = computeAllPRs();
+
+  // Stop any running rest timer before clearing the DOM — otherwise the blur
+  // events from removed set-row inputs trigger fire() one more time, starting
+  // a background timer that fires "Rest time's up!" long after saving.
+  pauseTimer();
+  document.getElementById("timer-widget").classList.add("hidden");
 
   // Reset blocks
   const mainEl = document.querySelector(".main");
@@ -1940,7 +2064,7 @@ function saveSession() {
     .filter(item => !prBeaten.find(p=>p.exercise===item.exercise))
     .filter(item => {
       if (prevBest[item.exercise] === undefined) return false;
-      const cur = Math.max(...item.sets.filter(s=>!s.dropSet).map(s=>calc1RM(s.weight,s.reps)), 0);
+      const cur = Math.max(...item.sets.filter(s=>!s.dropSet&&!s.failSet).map(s=>calc1RM(s.weight,s.reps)), 0);
       return cur > prevBest[item.exercise] + 0.01;
     });
 
@@ -1982,7 +2106,7 @@ function calc1RM(weight, reps) {
 function computeAllPRs() {
   const map = {};
   workouts.forEach(w => {
-    const best = Math.max(...w.sets.filter(s => !s.dropSet).map(s => calc1RM(s.weight, s.reps)), 0);
+    const best = Math.max(...w.sets.filter(s => !s.dropSet && !s.failSet).map(s => calc1RM(s.weight, s.reps)), 0);
     if (best > (map[w.exercise] || 0)) map[w.exercise] = best;
   });
   return map;
@@ -2013,13 +2137,13 @@ function renderHistory() {
     const totalVol  = ws.reduce((s,w) => s+w.sets.reduce((a,set) => a+set.weight*set.reps, 0), 0);
     const exItems = ws.map(w => {
       const wIdx     = workouts.indexOf(w);
-      const mainSets = w.sets.filter(s => !s.dropSet);
+      const mainSets = w.sets.filter(s => !s.dropSet && !s.failSet);
       const best1rm  = Math.max(...mainSets.map(s => calc1RM(s.weight, s.reps)), 0);
       const isPR     = best1rm > 0 && Math.abs(best1rm - (allPRs[w.exercise]||0)) < 0.01;
-      const summary  = w.sets.map(s => (s.dropSet?"↓":"")+s.weight+"kg×"+s.reps).join("  ");
+      const summary  = w.sets.map(s => (s.failSet?"💀":(s.dropSet?"↓":""))+s.weight+"kg×"+s.reps).join("  ");
       return `<div class="exercise-item" style="position:relative;">
         <div class="exercise-name">
-          ${w.exercise}
+          ${exDisplayName(w.exercise)}
           <span class="badge badge-${w.cat}">${w.cat}</span>
           ${isPR ? '<span class="badge badge-pr">🏆 PR</span>' : ""}
           ${best1rm>0?`<span style="font-size:.7rem;color:var(--muted);">1RM ~${best1rm.toFixed(1)}kg</span>`:""}
@@ -2071,12 +2195,13 @@ function openEditModal(wIdx) {
 function renderEditSets(sets) {
   const body = document.getElementById("edit-sets-body");
   body.innerHTML = sets.map((s, i) => `
-    <div class="edit-set-row" id="edit-row-${i}">
+    <div class="edit-set-row" id="edit-row-${i}" style="${s.failSet?"opacity:.55":""}">
       <input type="number" min="0" step="0.5" value="${s.weight||""}" placeholder="kg" id="ew-${i}">
       <input type="number" min="0" step="1"   value="${s.reps||""}"   placeholder="reps" id="er-${i}">
       <input type="text" class="note-input"   value="${s.note||""}"   placeholder="note" id="en-${i}">
       <div style="display:flex;gap:3px;">
         <button class="edit-drop-toggle${s.dropSet?" active":""}" title="Drop set" id="eds-${i}" onclick="toggleEditDrop(${i})">${s.dropSet?"↓D":"D"}</button>
+        <button class="edit-rip-toggle${s.failSet?" active":""}" title="Failed set" id="eri-${i}" onclick="toggleEditRIP(${i})">💀</button>
         <button class="edit-set-del" onclick="deleteEditSet(${i})">✕</button>
       </div>
     </div>`
@@ -2087,6 +2212,13 @@ function toggleEditDrop(i) {
   const btn = document.getElementById(`eds-${i}`);
   const isActive = btn.classList.toggle("active");
   btn.textContent = isActive ? "↓D" : "D";
+}
+
+function toggleEditRIP(i) {
+  const btn = document.getElementById(`eri-${i}`);
+  const row = document.getElementById(`edit-row-${i}`);
+  const isActive = btn.classList.toggle("active");
+  row.style.opacity = isActive ? "0.55" : "1";
 }
 
 function deleteEditSet(i) {
@@ -2101,6 +2233,9 @@ function deleteEditSet(i) {
     const dropBtn = row.querySelector(`[id^="eds-"]`);
     dropBtn.id = `eds-${newI}`;
     dropBtn.setAttribute("onclick", `toggleEditDrop(${newI})`);
+    const ripBtn = row.querySelector(`[id^="eri-"]`);
+    ripBtn.id = `eri-${newI}`;
+    ripBtn.setAttribute("onclick", `toggleEditRIP(${newI})`);
     row.querySelector(".edit-set-del").setAttribute("onclick", `deleteEditSet(${newI})`);
   });
 }
@@ -2118,6 +2253,7 @@ function editAddSet() {
     <input type="text" class="note-input"   value=""         placeholder="note" id="en-${newI}">
     <div style="display:flex;gap:3px;">
       <button class="edit-drop-toggle" title="Drop set" id="eds-${newI}" onclick="toggleEditDrop(${newI})">D</button>
+      <button class="edit-rip-toggle" title="Failed set" id="eri-${newI}" onclick="toggleEditRIP(${newI})">💀</button>
       <button class="edit-set-del" onclick="deleteEditSet(${newI})">✕</button>
     </div>`;
   document.getElementById("edit-sets-body").appendChild(div);
@@ -2137,7 +2273,8 @@ function saveEditModal() {
     const reps    = parseInt(document.getElementById(`er-${i}`)?.value)   || 0;
     const note    = document.getElementById(`en-${i}`)?.value.trim() || "";
     const dropSet = document.getElementById(`eds-${i}`)?.classList.contains("active") || false;
-    if (reps > 0) sets.push({ weight, reps, note, dropSet });
+    const failSet = document.getElementById(`eri-${i}`)?.classList.contains("active") || false;
+    if (reps > 0) sets.push({ weight, reps, note, dropSet, failSet });
   });
 
   if (!sets.length) {
@@ -2190,7 +2327,7 @@ function renderPerfChart() {
   const dates  = Object.keys(byDate).sort();
   const values = dates.map(d => {
     const sets = byDate[d];
-    const main = sets.filter(s => !s.dropSet);
+    const main = sets.filter(s => !s.dropSet && !s.failSet);
     if (metric==="1rm")       return Math.max(...main.map(s => calc1RM(s.weight,s.reps)), 0);
     if (metric==="volume")    return sets.reduce((a,s) => a+s.weight*s.reps, 0);
     if (metric==="maxweight") return Math.max(...main.map(s => s.weight), 0);
@@ -2529,7 +2666,7 @@ function renderCustomList(){
 
 // ─── REST TIMER ──────────────────────────────────────────────────────────────
 const CIRC = 2 * Math.PI * 38; // 238.76
-let timerTotal = 90, timerLeft = 90, timerInterval = null, timerRunning = false;
+let timerTotal = 90, timerLeft = 90, timerInterval = null, timerRunning = false, timerCloseTimeout = null;
 
 function openTimer(){ document.getElementById("timer-widget").classList.remove("hidden"); }
 function closeTimer(){ pauseTimer(); document.getElementById("timer-widget").classList.add("hidden"); }
@@ -2553,6 +2690,15 @@ function setCustomTimer(){
 }
 function toggleTimer(){ timerRunning ? pauseTimer() : startTimer(); }
 function startTimer(){
+  // Cancel any pending auto-close from a previous completion — otherwise it
+  // fires 3s later and hides the freshly-started timer.
+  clearTimeout(timerCloseTimeout);
+  timerCloseTimeout = null;
+  // Always clear any existing interval before creating a new one.
+  // Without this, rapidly logging sets creates multiple stacked intervals
+  // that all decrement timerLeft simultaneously → runs N× too fast → goes negative.
+  clearInterval(timerInterval);
+  timerInterval = null;
   if(timerLeft<=0)resetTimer();
   timerRunning=true;
   // Save end time to localStorage so background tab can recover
@@ -2566,12 +2712,13 @@ function startTimer(){
       localStorage.removeItem("gymlog_timer_end");
       playBeep(); playMotivationSound();
       showToast("Rest time's up! 💪");
-      setTimeout(closeTimer, 3000);
+      timerCloseTimeout = setTimeout(closeTimer, 3000);
     }
   },1000);
 }
 function pauseTimer(){
   clearInterval(timerInterval); timerRunning=false;
+  clearTimeout(timerCloseTimeout); timerCloseTimeout=null;
   localStorage.removeItem("gymlog_timer_end");
   document.getElementById("timer-play-btn").textContent="▶ Start";
 }
@@ -2584,6 +2731,7 @@ document.addEventListener("visibilitychange", () => {
   const remaining = Math.ceil((endTime - Date.now()) / 1000);
   if(remaining > 0){
     clearInterval(timerInterval);
+    timerInterval = null;
     timerLeft = remaining;
     openTimer(); updateTimerUI();
     timerRunning = true;
@@ -2611,7 +2759,8 @@ function resetTimer(){
   pauseTimer(); timerLeft=timerTotal; updateTimerUI();
 }
 function updateTimerUI(){
-  const m=Math.floor(timerLeft/60), s=timerLeft%60;
+  const t=Math.max(0,timerLeft);
+  const m=Math.floor(t/60), s=t%60;
   document.getElementById("timer-display").textContent=m+":"+(s<10?"0":"")+s;
   const pct=timerTotal>0?timerLeft/timerTotal:1;
   const offset=CIRC*(1-pct);
@@ -2806,11 +2955,11 @@ function showPage(id){
 // ─── EXPORT ──────────────────────────────────────────────────────────────────
 function exportCSV() {
   if (!workouts.length) { showToast("No data to export"); return; }
-  const rows = [["Date","Exercise","Category","Set#","Weight(kg)","Reps","Drop Set","Note","Est.1RM"]];
+  const rows = [["Date","Exercise","Category","Set#","Weight(kg)","Reps","Drop Set","Failed","Note","Est.1RM"]];
   workouts.forEach(w => {
     w.sets.forEach((s, i) => {
-      const rm = !s.dropSet ? calc1RM(s.weight, s.reps).toFixed(1) : "";
-      rows.push([w.date, w.exercise, w.cat, i+1, s.weight, s.reps, s.dropSet?"yes":"", s.note||"", rm]);
+      const rm = (!s.dropSet && !s.failSet) ? calc1RM(s.weight, s.reps).toFixed(1) : "";
+      rows.push([w.date, w.exercise, w.cat, i+1, s.weight, s.reps, s.dropSet?"yes":"", s.failSet?"yes":"", s.note||"", rm]);
     });
   });
   const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
