@@ -49,8 +49,8 @@ select option,optgroup{background:var(--surface2);}
 .icon-btn{width:28px;height:28px;border-radius:6px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.78rem;transition:all .15s;}
 .ds-btn{background:var(--surface2);color:var(--muted);}
 .ds-btn.active{background:rgba(251,146,60,.2);color:var(--orange);font-weight:700;}
-.rip-btn{background:var(--surface2);color:var(--muted);font-size:.7rem;}
-.rip-btn.active{background:rgba(248,113,113,.2);color:var(--red);font-weight:700;}
+.rip-btn{background:var(--surface2);color:var(--muted);font-size:.68rem;font-weight:600;letter-spacing:.02em;}
+.rip-btn.active{background:rgba(248,113,113,.2);color:var(--red);font-weight:700;border:1px solid rgba(248,113,113,.5);}
 .del-btn{background:rgba(248,113,113,.12);color:var(--red);}
 .btn-add-set{background:rgba(108,99,255,.1);color:var(--accent);border:1px dashed rgba(108,99,255,.4);width:100%;padding:7px;border-radius:8px;cursor:pointer;font-size:.83rem;margin-top:7px;transition:all .15s;}
 .btn-add-set:hover{background:rgba(108,99,255,.2);}
@@ -173,7 +173,7 @@ select option,optgroup{background:var(--surface2);}
 .edit-set-row input.note-input{text-align:left;}
 .edit-drop-toggle{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;}
 .edit-drop-toggle.active{background:rgba(251,146,60,.2);color:var(--orange);border-color:var(--orange);}
-.edit-rip-toggle{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;}
+.edit-rip-toggle{width:32px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-size:.68rem;font-weight:600;display:flex;align-items:center;justify-content:center;}
 .edit-rip-toggle.active{background:rgba(248,113,113,.2);color:var(--red);border-color:var(--red);}
 .edit-set-del{width:28px;height:28px;border-radius:6px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:.85rem;transition:color .15s;}
 .edit-set-del:hover{color:var(--red);}
@@ -678,7 +678,7 @@ select option,optgroup{background:var(--surface2);}
       </div>
     </div>
     <div class="edit-sets-header">
-      <span>Weight (kg)</span><span>Reps</span><span>Note</span><span style="text-align:center;">↓DS 💀</span>
+      <span>Weight (kg)</span><span>Reps</span><span>Note</span><span style="text-align:center;">↓DS RIP</span>
     </div>
     <div id="edit-sets-body"></div>
     <button onclick="editAddSet()" class="btn btn-ghost" style="width:100%;margin-top:6px;font-size:.82rem;">＋ Add Set</button>
@@ -1695,7 +1695,7 @@ function setAppLang(lang) {
 function refreshBlockLabels(bid) {
   const hdr = document.getElementById(`sets-hdr-${bid}`);
   if (hdr) hdr.innerHTML =
-    `<span>#</span><span>${tl('col_weight')}</span><span>${tl('col_reps')}</span><span>${tl('col_notes')}</span><span style="text-align:center;" title="Drop Set">↓DS</span><span style="text-align:center;" title="Failed set">💀</span><span></span>`;
+    `<span>#</span><span>${tl('col_weight')}</span><span>${tl('col_reps')}</span><span>${tl('col_notes')}</span><span style="text-align:center;" title="Drop Set">↓DS</span><span style="text-align:center;" title="Failed set">RIP</span><span></span>`;
   const addSetBtn = document.getElementById(`add-set-btn-${bid}`);
   if (addSetBtn) addSetBtn.textContent = tl('btn_add_set');
   // Sort cycle button label sync
@@ -1764,7 +1764,7 @@ function addBlock(scroll = true) {
     </div>
     <div class="ex-info" id="info-${bid}"></div>
     <div class="sets-header" id="sets-hdr-${bid}" style="margin-top:4px;">
-      <span>#</span><span>${tl('col_weight')}</span><span>${tl('col_reps')}</span><span>${tl('col_notes')}</span><span style="text-align:center;" title="Drop Set">↓DS</span><span style="text-align:center;" title="Failed set">💀</span><span></span>
+      <span>#</span><span>${tl('col_weight')}</span><span>${tl('col_reps')}</span><span>${tl('col_notes')}</span><span style="text-align:center;" title="Drop Set">↓DS</span><span style="text-align:center;" title="Failed set">RIP</span><span></span>
     </div>
     <div id="sets-body-${bid}"></div>
     <button id="add-set-btn-${bid}" class="btn-add-set" onclick="addSetToBlock('${bid}')">${tl('btn_add_set')}</button>`;
@@ -1881,7 +1881,7 @@ function updateBlockInfo(bid) {
   // Last session (most recent date)
   const lastDate = [...new Set(all.map(w=>w.date))].sort().pop();
   const lastSets = all.filter(w=>w.date===lastDate).flatMap(w=>w.sets);
-  const lastStr  = lastSets.map(s=>(s.failSet?"💀":(s.dropSet?"↓":""))+s.weight+"×"+s.reps).join("  ");
+  const lastStr  = lastSets.map(s=>(s.failSet?"[RIP]":(s.dropSet?"↓":""))+s.weight+"×"+s.reps).join("  ");
   const restSec  = getRestTime(exName);
   const restStr  = restSec >= 60 ? `${Math.floor(restSec/60)}m${restSec%60?""+restSec%60+"s":""}` : `${restSec}s`;
 
@@ -1934,7 +1934,7 @@ function addSetToBlock(bid) {
     <input type="number" min="1" step="1"   placeholder="0" id="r-${sid}">
     <input type="text" placeholder="note" id="n-${sid}">
     <button class="icon-btn ds-btn" id="ds-${sid}" onclick="toggleDSBlock('${sid}')" title="Drop set">DS</button>
-    <button class="icon-btn rip-btn" id="rip-${sid}" onclick="toggleRIPBlock('${sid}')" title="Failed / RIP set">💀</button>
+    <button class="icon-btn rip-btn" id="rip-${sid}" onclick="toggleRIPBlock('${sid}')" title="Failed / RIP set">RIP</button>
     <button class="icon-btn del-btn" onclick="this.closest('.set-row').remove()">✕</button>`;
   body.appendChild(row);
 
@@ -2140,7 +2140,7 @@ function renderHistory() {
       const mainSets = w.sets.filter(s => !s.dropSet && !s.failSet);
       const best1rm  = Math.max(...mainSets.map(s => calc1RM(s.weight, s.reps)), 0);
       const isPR     = best1rm > 0 && Math.abs(best1rm - (allPRs[w.exercise]||0)) < 0.01;
-      const summary  = w.sets.map(s => (s.failSet?"💀":(s.dropSet?"↓":""))+s.weight+"kg×"+s.reps).join("  ");
+      const summary  = w.sets.map(s => (s.failSet?"[RIP]":(s.dropSet?"↓":""))+s.weight+"kg×"+s.reps).join("  ");
       return `<div class="exercise-item" style="position:relative;">
         <div class="exercise-name">
           ${exDisplayName(w.exercise)}
@@ -2201,7 +2201,7 @@ function renderEditSets(sets) {
       <input type="text" class="note-input"   value="${s.note||""}"   placeholder="note" id="en-${i}">
       <div style="display:flex;gap:3px;">
         <button class="edit-drop-toggle${s.dropSet?" active":""}" title="Drop set" id="eds-${i}" onclick="toggleEditDrop(${i})">${s.dropSet?"↓D":"D"}</button>
-        <button class="edit-rip-toggle${s.failSet?" active":""}" title="Failed set" id="eri-${i}" onclick="toggleEditRIP(${i})">💀</button>
+        <button class="edit-rip-toggle${s.failSet?" active":""}" title="Failed set" id="eri-${i}" onclick="toggleEditRIP(${i})">RIP</button>
         <button class="edit-set-del" onclick="deleteEditSet(${i})">✕</button>
       </div>
     </div>`
@@ -2253,7 +2253,7 @@ function editAddSet() {
     <input type="text" class="note-input"   value=""         placeholder="note" id="en-${newI}">
     <div style="display:flex;gap:3px;">
       <button class="edit-drop-toggle" title="Drop set" id="eds-${newI}" onclick="toggleEditDrop(${newI})">D</button>
-      <button class="edit-rip-toggle" title="Failed set" id="eri-${newI}" onclick="toggleEditRIP(${newI})">💀</button>
+      <button class="edit-rip-toggle" title="Failed set" id="eri-${newI}" onclick="toggleEditRIP(${newI})">RIP</button>
       <button class="edit-set-del" onclick="deleteEditSet(${newI})">✕</button>
     </div>`;
   document.getElementById("edit-sets-body").appendChild(div);
