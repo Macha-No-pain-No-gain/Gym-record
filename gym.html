@@ -183,6 +183,40 @@ select option,optgroup{background:var(--surface2);}
 .custom-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;}
 .custom-item-name{font-weight:600;font-size:.9rem;}
 .custom-item-meta{font-size:.78rem;color:var(--muted);margin-top:2px;}
+/* Session Result overlay */
+.result-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1100;display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeIn .25s ease;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px 24px;width:100%;max-width:420px;max-height:92vh;overflow-y:auto;animation:popIn .3s cubic-bezier(.34,1.56,.64,1);}
+@keyframes popIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+.result-title{text-align:center;font-size:1.5rem;font-weight:800;margin-bottom:4px;}
+.result-subtitle{text-align:center;color:var(--muted);font-size:.82rem;margin-bottom:22px;}
+.result-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.result-stat{background:var(--surface2);border-radius:12px;padding:14px 12px;text-align:center;}
+.result-stat-val{font-size:1.6rem;font-weight:800;color:var(--accent);line-height:1.1;}
+.result-stat-lbl{font-size:.72rem;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.06em;}
+.result-stat.gold .result-stat-val{color:var(--gold);}
+.result-stat.green .result-stat-val{color:var(--green);}
+.result-pr-list{margin-bottom:20px;}
+.result-pr-title{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.result-pr-item{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:8px 12px;font-size:.83rem;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;}
+.result-pr-new{color:var(--gold);font-weight:700;}
+.result-exercises{margin-bottom:20px;}
+.result-ex-title{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;}
+.result-ex-item{display:flex;justify-content:space-between;font-size:.82rem;padding:5px 0;border-bottom:1px solid var(--border);}
+.result-ex-item:last-child{border-bottom:none;}
+.result-close{width:100%;padding:13px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;transition:background .15s;}
+.result-close:hover{background:#7c74ff;}
+#result-confetti{position:fixed;inset:0;pointer-events:none;z-index:1099;}
+/* Volume tab */
+.vol-range-btn{padding:6px 16px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s;}
+.vol-range-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.vol-muscle-row{display:grid;grid-template-columns:110px 1fr 64px 80px;gap:10px;align-items:center;margin-bottom:10px;}
+.vol-muscle-name{font-size:.85rem;font-weight:600;color:var(--text);text-transform:capitalize;}
+.vol-bar-wrap{background:var(--surface2);border-radius:4px;height:10px;overflow:hidden;}
+.vol-bar{height:100%;border-radius:4px;background:var(--accent);transition:width .4s ease;}
+.vol-sets{font-size:.78rem;color:var(--muted);text-align:right;}
+.vol-kg{font-size:.78rem;color:var(--accent);font-weight:600;text-align:right;}
+.vol-section-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 0 10px;padding-bottom:4px;border-bottom:1px solid var(--border);}
 /* Quote card */
 .quote-card{background:linear-gradient(135deg,rgba(108,99,255,.08),rgba(108,99,255,.03));border:1px solid rgba(108,99,255,.2);border-radius:12px;padding:14px 18px;margin-bottom:18px;}
 .quote-text{font-size:.9rem;font-style:italic;color:var(--text);line-height:1.55;margin-bottom:6px;}
@@ -331,9 +365,10 @@ select option,optgroup{background:var(--surface2);}
       <h1>Progress</h1>
       <p class="subtitle">Performance charts, body weight, and consistency</p>
       <div class="tab-bar">
-        <button id="tab-btn-perf"   class="tab-btn active" onclick="showProgressTab('perf',this)">Performance</button>
-        <button id="tab-btn-bw"     class="tab-btn" onclick="showProgressTab('bw',this)">Body Weight</button>
-        <button id="tab-btn-streak" class="tab-btn" onclick="showProgressTab('streak',this)">Streak</button>
+        <button id="tab-btn-perf"   class="tab-btn active" onclick="showProgressTab('perf',this)" data-i18n="tab_perf">Performance</button>
+        <button id="tab-btn-volume" class="tab-btn" onclick="showProgressTab('volume',this)" data-i18n="tab_volume">Volume</button>
+        <button id="tab-btn-bw"     class="tab-btn" onclick="showProgressTab('bw',this)" data-i18n="tab_bw">Body Weight</button>
+        <button id="tab-btn-streak" class="tab-btn" onclick="showProgressTab('streak',this)" data-i18n="tab_streak">Streak</button>
       </div>
 
       <!-- Performance tab -->
@@ -363,6 +398,16 @@ select option,optgroup{background:var(--surface2);}
           <div class="card"><div class="card-title">Weekly Volume by Category</div><div class="chart-container"><canvas id="chart-cat"></canvas></div></div>
           <div class="card"><div class="card-title">Workout Frequency by Day</div><div class="chart-container"><canvas id="chart-freq"></canvas></div></div>
         </div>
+      </div>
+
+      <!-- Volume by Muscle tab -->
+      <div class="tab-content" id="tab-volume">
+        <div style="display:flex;gap:8px;margin-bottom:18px;align-items:center;flex-wrap:wrap;">
+          <button class="vol-range-btn active" data-days="7" onclick="setVolRange(7,this)">1 Week</button>
+          <button class="vol-range-btn" data-days="30" onclick="setVolRange(30,this)">1 Month</button>
+          <span id="vol-period-label" style="font-size:.8rem;color:var(--muted);margin-left:4px;"></span>
+        </div>
+        <div id="vol-muscle-list"></div>
       </div>
 
       <!-- Body Weight tab -->
@@ -686,6 +731,25 @@ select option,optgroup{background:var(--surface2);}
       <button class="btn btn-primary" onclick="saveEditModal()" style="flex:1;">Save Changes</button>
       <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
     </div>
+  </div>
+</div>
+
+<!-- ══ SESSION RESULT OVERLAY ════════════════════════════════════ -->
+<canvas id="result-confetti" style="display:none;"></canvas>
+<div class="result-overlay" id="result-overlay" style="display:none;">
+  <div class="result-card">
+    <div class="result-title" id="result-title">💪 Session Complete!</div>
+    <div class="result-subtitle" id="result-subtitle"></div>
+    <div class="result-stats-grid" id="result-stats-grid"></div>
+    <div class="result-pr-list" id="result-pr-list" style="display:none;">
+      <div class="result-pr-title">🏆 New Personal Records</div>
+      <div id="result-pr-items"></div>
+    </div>
+    <div class="result-exercises" id="result-exercises">
+      <div class="result-ex-title">Exercises</div>
+      <div id="result-ex-items"></div>
+    </div>
+    <button class="result-close" onclick="closeResult()">Let's go! 🔥</button>
   </div>
 </div>
 
@@ -1593,7 +1657,7 @@ const I18N = {
     hist_all:"All", hist_weights:"Weights",
     hist_calisthenics:"Calisthenics", hist_core:"Core", hist_cardio:"Cardio",
     // Progress tabs
-    tab_perf:"Performance", tab_bw:"Body Weight", tab_streak:"Streak",
+    tab_perf:"Performance", tab_volume:"Volume", tab_bw:"Body Weight", tab_streak:"Streak",
     // Settings
     lbl_cloud_sync:"☁️ Cloud Sync",
     lbl_timer_alarm:"⏱ Timer Alarm",
@@ -1629,7 +1693,7 @@ const I18N = {
     hist_all:"全て", hist_weights:"ウェイト",
     hist_calisthenics:"自重", hist_core:"体幹", hist_cardio:"有酸素",
     // Progress tabs
-    tab_perf:"パフォーマンス", tab_bw:"体重", tab_streak:"連続記録",
+    tab_perf:"パフォーマンス", tab_volume:"ボリューム", tab_bw:"体重", tab_streak:"連続記録",
     // Settings
     lbl_cloud_sync:"☁️ クラウド同期",
     lbl_timer_alarm:"⏱ タイマーアラーム",
@@ -1673,7 +1737,7 @@ function applyLanguage(lang) {
   const hkeys  = ["hist_all","hist_weights","hist_calisthenics","hist_core","hist_cardio"];
   hchips.forEach((c,i) => { if (L[hkeys[i]]) c.textContent = L[hkeys[i]]; });
   // Progress tabs
-  [["tab-btn-perf","tab_perf"],["tab-btn-bw","tab_bw"],["tab-btn-streak","tab_streak"]].forEach(([id,k]) => {
+  [["tab-btn-perf","tab_perf"],["tab-btn-volume","tab_volume"],["tab-btn-bw","tab_bw"],["tab-btn-streak","tab_streak"]].forEach(([id,k]) => {
     const el = document.getElementById(id); if (el && L[k]) el.textContent = L[k];
   });
   // Re-render all exercise blocks so headers + select placeholder update
@@ -1735,6 +1799,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // ─── BLOCK-BASED SESSION ──────────────────────────────────────────────────────
 let blockCount = 0;
 const blockSetCounts = {};
+let sessionStartTime = Date.now();
 
 function addBlock(scroll = true) {
   blockCount++;
@@ -1799,13 +1864,23 @@ function populateBlockEx(bid) {
 
   sel.innerHTML = `<option value="">${tl('select_ex')}</option>`;
 
+  // Always compute use counts — shown in all sort modes
+  const useCounts = {}, lastUsed = {};
+  workouts.forEach(w => {
+    useCounts[w.exercise] = (useCounts[w.exercise] || 0) + 1;
+    if (!lastUsed[w.exercise] || w.date > lastUsed[w.exercise]) lastUsed[w.exercise] = w.date;
+  });
+
+  // Helper: display name with use count appended if > 0
+  const exLabel = (name) => {
+    const base = exDisplayName(name);
+    const c = useCounts[name];
+    if (!c) return base;
+    if (sortMode === "recent" && lastUsed[name]) return `${base}  ${formatDate(lastUsed[name], true)}`;
+    return `${base}  ×${c}`;
+  };
+
   if (sortMode === "used" || sortMode === "recent") {
-    // Compute stats from workout history
-    const useCounts = {}, lastUsed = {};
-    workouts.forEach(w => {
-      useCounts[w.exercise] = (useCounts[w.exercise] || 0) + 1;
-      if (!lastUsed[w.exercise] || w.date > lastUsed[w.exercise]) lastUsed[w.exercise] = w.date;
-    });
     const sorted = [...list].sort((a, b) => {
       if (sortMode === "used")   return (useCounts[b.name]||0) - (useCounts[a.name]||0);
       return (lastUsed[b.name]||"") > (lastUsed[a.name]||"") ? 1 : -1;
@@ -1818,11 +1893,7 @@ function populateBlockEx(bid) {
       items.forEach(ex => {
         const o = document.createElement("option");
         o.value = ex.name;
-        o.textContent = sortMode === "used" && useCounts[ex.name]
-          ? `${exDisplayName(ex.name)}  ×${useCounts[ex.name]}`
-          : sortMode === "recent" && lastUsed[ex.name]
-          ? `${exDisplayName(ex.name)}  ${formatDate(lastUsed[ex.name], true)}`
-          : exDisplayName(ex.name);
+        o.textContent = exLabel(ex.name);
         if (ex.name === cur) o.selected = true;
         g.appendChild(o);
       });
@@ -1838,7 +1909,6 @@ function populateBlockEx(bid) {
       const key = `${ppl}||${sub}`;
       (grouped[key] = grouped[key] || {ppl, sub, items:[]}).items.push(ex);
     });
-    // Always sort A-Z within each group (alpha mode keeps this, default also uses it)
     Object.values(grouped).forEach(g => g.items.sort((a,b) => a.name.localeCompare(b.name)));
     PPL_ORDER.forEach(ppl => {
       if (pplFilter && ppl !== pplFilter) return;
@@ -1854,7 +1924,8 @@ function populateBlockEx(bid) {
         g.label = `${PPL_LABELS[ppl]} — ${sub}`;
         grp.items.forEach(ex => {
           const o = document.createElement("option");
-          o.value = ex.name; o.textContent = exDisplayName(ex.name);
+          o.value = ex.name;
+          o.textContent = exLabel(ex.name);
           if (ex.name === cur) o.selected = true;
           g.appendChild(o);
         });
@@ -1930,8 +2001,8 @@ function addSetToBlock(bid) {
   row.className = "set-row"; row.id = `set-${sid}`; row.dataset.drop = "0";
   row.innerHTML = `
     <div class="set-num">${sn}</div>
-    <input type="number" min="0" step="0.5" placeholder="0" id="w-${sid}" value="${prevW}">
-    <input type="number" min="1" step="1"   placeholder="0" id="r-${sid}">
+    <input type="number" min="0" step="0.5" placeholder="0" id="w-${sid}" value="${prevW}" onfocus="this.select()">
+    <input type="number" min="1" step="1"   placeholder="0" id="r-${sid}" onfocus="this.select()">
     <input type="text" placeholder="note" id="n-${sid}">
     <button class="icon-btn ds-btn" id="ds-${sid}" onclick="toggleDSBlock('${sid}')" title="Drop set">DS</button>
     <button class="icon-btn rip-btn" id="rip-${sid}" onclick="toggleRIPBlock('${sid}')" title="Failed / RIP set">RIP</button>
@@ -2054,6 +2125,7 @@ function saveSession() {
   const scrollY = mainEl ? mainEl.scrollTop : 0;
   document.getElementById("session-blocks").innerHTML = "";
   blockCount = 0; addBlock(false);
+  sessionStartTime = Date.now();
   if (mainEl) requestAnimationFrame(() => mainEl.scrollTop = scrollY);
 
   // Awards: PR > previous session > nothing
@@ -2068,20 +2140,147 @@ function saveSession() {
       return cur > prevBest[item.exercise] + 0.01;
     });
 
+  showSessionResult(blocks, prBeaten, prevBeaten);
+}
+
+function showSessionResult(blocks, prBeaten, prevBeaten) {
+  const durationMs  = Date.now() - sessionStartTime;
+  const durMins     = Math.floor(durationMs / 60000);
+  const durStr      = durMins >= 60
+    ? `${Math.floor(durMins/60)}h ${durMins%60}m`
+    : `${durMins}m`;
+
+  const totalSets   = blocks.reduce((s, b) => s + b.sets.filter(x => !x.failSet).length, 0);
+  const totalVol    = blocks.reduce((s, b) => s + b.sets.reduce((a, x) => a + x.weight * x.reps, 0), 0);
+  const volStr      = totalVol >= 1000 ? (totalVol/1000).toFixed(1)+"t" : totalVol.toFixed(0)+"kg";
+
+  // Top muscle (primary only)
+  const muscleCounts = {};
+  blocks.forEach(b => {
+    const ex = getAllExercises().find(e => e.name === b.exercise);
+    const primary = ex?.muscles?.[0];
+    if (primary) muscleCounts[primary] = (muscleCounts[primary]||0) + b.sets.filter(x=>!x.failSet).length;
+  });
+  const topMuscle = Object.entries(muscleCounts).sort((a,b)=>b[1]-a[1])[0]?.[0] || "—";
+
+  // Title
+  const hasNewPR = prBeaten.length > 0;
+  document.getElementById("result-title").textContent =
+    hasNewPR ? "🏆 New PR Achieved!" : prevBeaten.length ? "🔥 Session Complete!" : "💪 Session Complete!";
+  document.getElementById("result-subtitle").textContent =
+    new Date().toLocaleDateString(tutLang==="ja"?"ja-JP":"en-US",{weekday:"long",month:"long",day:"numeric"});
+
+  // Stats grid
+  document.getElementById("result-stats-grid").innerHTML = `
+    <div class="result-stat">
+      <div class="result-stat-val">${totalSets}</div>
+      <div class="result-stat-lbl">Total Sets</div>
+    </div>
+    <div class="result-stat green">
+      <div class="result-stat-val">${volStr}</div>
+      <div class="result-stat-lbl">Total Volume</div>
+    </div>
+    <div class="result-stat">
+      <div class="result-stat-val">${blocks.length}</div>
+      <div class="result-stat-lbl">Exercises</div>
+    </div>
+    <div class="result-stat ${durMins>0?"":""}">
+      <div class="result-stat-val">${durMins > 0 ? durStr : "—"}</div>
+      <div class="result-stat-lbl">Duration</div>
+    </div>
+    <div class="result-stat gold">
+      <div class="result-stat-val">${prBeaten.length}</div>
+      <div class="result-stat-lbl">New PRs 🏆</div>
+    </div>
+    <div class="result-stat">
+      <div class="result-stat-val" style="font-size:1rem;padding-top:4px;">${topMuscle}</div>
+      <div class="result-stat-lbl">Top Muscle</div>
+    </div>`;
+
+  // PR list
+  const prSection = document.getElementById("result-pr-list");
   if (prBeaten.length) {
-    playMotivationSound();
-    showToast(
-      "🏆🎊 NEW PR! 🎊🏆\n" + prBeaten.map(p=>`${p.exercise}: ${p.new1rm.toFixed(1)}kg 1RM`).join("\n"),
-      "award-pr", 5000
-    );
-  } else if (prevBeaten.length) {
-    showToast(
-      "💪 Crushed your last session!\n" + prevBeaten.map(i=>`${i.exercise}`).join(", "),
-      "award-beat", 3500
-    );
+    prSection.style.display = "block";
+    document.getElementById("result-pr-items").innerHTML = prBeaten.map(p =>
+      `<div class="result-pr-item">
+        <span>${p.exercise}</span>
+        <span class="result-pr-new">${p.new1rm.toFixed(1)} kg 1RM ↑</span>
+      </div>`
+    ).join("");
   } else {
-    showToast(`✅ Session saved — ${blocks.length} exercise${blocks.length>1?"s":""}!`);
+    prSection.style.display = "none";
   }
+
+  // Exercise breakdown
+  document.getElementById("result-ex-items").innerHTML = blocks.map(b => {
+    const vol = b.sets.reduce((a,s) => a + s.weight*s.reps, 0);
+    const sets = b.sets.filter(s=>!s.failSet).length;
+    return `<div class="result-ex-item">
+      <span>${exDisplayName(b.exercise)}</span>
+      <span style="color:var(--muted);">${sets} sets · ${vol.toFixed(0)}kg</span>
+    </div>`;
+  }).join("");
+
+  // Show overlay
+  const overlay = document.getElementById("result-overlay");
+  overlay.style.display = "flex";
+
+  // Confetti if PR or prevBeaten
+  if (hasNewPR || prevBeaten.length) {
+    playMotivationSound();
+    launchConfetti();
+  }
+}
+
+function closeResult() {
+  document.getElementById("result-overlay").style.display = "none";
+  stopConfetti();
+}
+
+// ── Lightweight canvas confetti ───────────────────────────────────────────────
+let _confettiAnim = null;
+const _confettiColors = ["#6c63ff","#4ade80","#fb923c","#f87171","#fbbf24","#38bdf8"];
+function launchConfetti() {
+  const canvas = document.getElementById("result-confetti");
+  canvas.style.display = "block";
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext("2d");
+  const particles = Array.from({length:120}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height - canvas.height,
+    w: 6 + Math.random() * 6,
+    h: 3 + Math.random() * 4,
+    color: _confettiColors[Math.floor(Math.random()*_confettiColors.length)],
+    rot: Math.random() * Math.PI * 2,
+    vx: (Math.random()-0.5) * 2,
+    vy: 2 + Math.random() * 3,
+    vr: (Math.random()-0.5) * 0.15,
+  }));
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = Math.max(0, 1 - frame/160);
+      ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+      ctx.restore();
+      p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+    });
+    frame++;
+    if (frame < 180) _confettiAnim = requestAnimationFrame(draw);
+    else stopConfetti();
+  }
+  cancelAnimationFrame(_confettiAnim);
+  _confettiAnim = requestAnimationFrame(draw);
+}
+function stopConfetti() {
+  cancelAnimationFrame(_confettiAnim);
+  const c = document.getElementById("result-confetti");
+  if (c) { c.style.display="none"; c.getContext("2d")?.clearRect(0,0,c.width,c.height); }
 }
 
 function clearAllBlocks() {
@@ -2196,8 +2395,8 @@ function renderEditSets(sets) {
   const body = document.getElementById("edit-sets-body");
   body.innerHTML = sets.map((s, i) => `
     <div class="edit-set-row" id="edit-row-${i}" style="${s.failSet?"opacity:.55":""}">
-      <input type="number" min="0" step="0.5" value="${s.weight||""}" placeholder="kg" id="ew-${i}">
-      <input type="number" min="0" step="1"   value="${s.reps||""}"   placeholder="reps" id="er-${i}">
+      <input type="number" min="0" step="0.5" value="${s.weight||""}" placeholder="kg" id="ew-${i}" onfocus="this.select()">
+      <input type="number" min="0" step="1"   value="${s.reps||""}"   placeholder="reps" id="er-${i}" onfocus="this.select()">
       <input type="text" class="note-input"   value="${s.note||""}"   placeholder="note" id="en-${i}">
       <div style="display:flex;gap:3px;">
         <button class="edit-drop-toggle${s.dropSet?" active":""}" title="Drop set" id="eds-${i}" onclick="toggleEditDrop(${i})">${s.dropSet?"↓D":"D"}</button>
@@ -2248,8 +2447,8 @@ function editAddSet() {
   const div = document.createElement("div");
   div.className = "edit-set-row"; div.id = `edit-row-${newI}`;
   div.innerHTML = `
-    <input type="number" min="0" step="0.5" value="${lastW}" placeholder="kg" id="ew-${newI}">
-    <input type="number" min="0" step="1"   value=""         placeholder="reps" id="er-${newI}">
+    <input type="number" min="0" step="0.5" value="${lastW}" placeholder="kg" id="ew-${newI}" onfocus="this.select()">
+    <input type="number" min="0" step="1"   value=""         placeholder="reps" id="er-${newI}" onfocus="this.select()">
     <input type="text" class="note-input"   value=""         placeholder="note" id="en-${newI}">
     <div style="display:flex;gap:3px;">
       <button class="edit-drop-toggle" title="Drop set" id="eds-${newI}" onclick="toggleEditDrop(${newI})">D</button>
@@ -2301,8 +2500,108 @@ function showProgressTab(id, el) {
   document.getElementById("tab-"+id).classList.add("active");
   el.classList.add("active");
   if (id === "perf")   { populateChartExercises(); renderStats(); renderPerfChart(); }
+  if (id === "volume") renderVolumeTab();
   if (id === "bw")     { renderBWChart(); renderBWList(); }
   if (id === "streak") renderStreakCalendar();
+}
+
+let volRangeDays = 7;
+function setVolRange(days, btn) {
+  volRangeDays = days;
+  document.querySelectorAll(".vol-range-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderVolumeTab();
+}
+
+function renderVolumeTab() {
+  const days   = volRangeDays;
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString().split("T")[0];
+  const filtered = workouts.filter(w => w.date >= cutoff);
+
+  // Label showing date range
+  const label = document.getElementById("vol-period-label");
+  if (label) label.textContent = cutoff + " → " + today();
+
+  if (!filtered.length) {
+    document.getElementById("vol-muscle-list").innerHTML =
+      `<div style="color:var(--muted);font-size:.88rem;padding:20px 0;">No workouts in this period.</div>`;
+    return;
+  }
+
+  // Aggregate sets and volume per muscle (primary=1.0, secondary=0.5, tertiary=0.25)
+  const muscleStats = {}; // muscle → { sets, volume }
+  filtered.forEach(w => {
+    const ex = getAllExercises().find(e => e.name === w.exercise);
+    const muscles = ex?.muscles || [];
+    if (!muscles.length) return;
+    const validSets = w.sets.filter(s => !s.failSet);
+    validSets.forEach(s => {
+      muscles.forEach((m, idx) => {
+        const wt = idx === 0 ? 1.0 : idx === 1 ? 0.5 : 0.25;
+        if (!muscleStats[m]) muscleStats[m] = { sets: 0, volume: 0 };
+        muscleStats[m].sets   += wt;
+        muscleStats[m].volume += s.weight * s.reps * wt;
+      });
+    });
+  });
+
+  // Sort by volume desc
+  const sorted = Object.entries(muscleStats)
+    .sort((a, b) => b[1].volume - a[1].volume);
+
+  if (!sorted.length) {
+    document.getElementById("vol-muscle-list").innerHTML =
+      `<div style="color:var(--muted);font-size:.88rem;padding:20px 0;">No data.</div>`;
+    return;
+  }
+
+  const maxVol = sorted[0][1].volume;
+
+  // Group into PPL-style categories for readability
+  const GROUP_ORDER = ["Chest","Shoulders","Triceps","Back","Biceps","Traps","Legs","Core","Cardio","Other"];
+  const GROUP_MAP = {
+    chest:"Chest", shoulders:"Shoulders", triceps:"Triceps",
+    back:"Back", biceps:"Biceps", traps:"Back",
+    "lower back":"Back", forearms:"Biceps",
+    quads:"Legs", hamstrings:"Legs", glutes:"Legs", calves:"Legs", "hip flexors":"Legs",
+    abs:"Core", "lower back":"Core",
+    calves:"Legs",
+  };
+
+  const groups = {};
+  sorted.forEach(([m, stat]) => {
+    const g = GROUP_MAP[m] || "Other";
+    if (!groups[g]) groups[g] = [];
+    groups[g].push([m, stat]);
+  });
+
+  // Build HTML — header row
+  let html = `<div class="vol-muscle-row" style="margin-bottom:14px;">
+    <span style="font-size:.7rem;color:var(--muted);text-transform:uppercase;">Muscle</span>
+    <span style="font-size:.7rem;color:var(--muted);text-transform:uppercase;">Volume</span>
+    <span style="font-size:.7rem;color:var(--muted);text-transform:uppercase;text-align:right;">Sets</span>
+    <span style="font-size:.7rem;color:var(--muted);text-transform:uppercase;text-align:right;">Total kg</span>
+  </div>`;
+
+  GROUP_ORDER.forEach(g => {
+    if (!groups[g]?.length) return;
+    html += `<div class="vol-section-title">${g}</div>`;
+    groups[g].forEach(([m, stat]) => {
+      const pct = maxVol > 0 ? (stat.volume / maxVol * 100).toFixed(1) : 0;
+      const sets = stat.sets % 1 === 0 ? stat.sets : stat.sets.toFixed(1);
+      const vol  = stat.volume >= 1000
+        ? (stat.volume / 1000).toFixed(1) + "t"
+        : stat.volume.toFixed(0) + "kg";
+      html += `<div class="vol-muscle-row">
+        <span class="vol-muscle-name">${m}</span>
+        <div class="vol-bar-wrap"><div class="vol-bar" style="width:${pct}%"></div></div>
+        <span class="vol-sets">${sets} sets</span>
+        <span class="vol-kg">${vol}</span>
+      </div>`;
+    });
+  });
+
+  document.getElementById("vol-muscle-list").innerHTML = html;
 }
 
 // ─── PERFORMANCE CHARTS ───────────────────────────────────────────────────────
