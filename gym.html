@@ -201,9 +201,23 @@ select option,optgroup{background:var(--surface2);}
 .result-pr-item{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:8px 12px;font-size:.83rem;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;}
 .result-pr-new{color:var(--gold);font-weight:700;}
 .result-exercises{margin-bottom:20px;}
-.result-ex-title{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;}
+.result-ex-title{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;}
 .result-ex-item{display:flex;justify-content:space-between;font-size:.82rem;padding:5px 0;border-bottom:1px solid var(--border);}
 .result-ex-item:last-child{border-bottom:none;}
+/* Detailed set list in result */
+.result-setlist-block{margin-bottom:16px;}
+.result-setlist-block:last-child{margin-bottom:0;}
+.result-setlist-exname{font-size:.84rem;font-weight:700;color:var(--accent);margin-bottom:7px;display:flex;justify-content:space-between;align-items:baseline;}
+.result-setlist-exvol{color:var(--muted);font-size:.72rem;font-weight:400;}
+.result-setlist-sets{display:flex;flex-direction:column;gap:4px;}
+.result-setlist-row{display:flex;align-items:center;gap:7px;font-size:.79rem;padding:4px 7px;border-radius:6px;background:var(--surface2);}
+.result-setlist-row.rip-row{opacity:.55;background:rgba(248,113,113,.07);}
+.result-setlist-num{width:20px;height:20px;background:var(--bg);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.68rem;color:var(--muted);flex-shrink:0;font-weight:600;}
+.result-setlist-main{color:var(--text);font-weight:600;flex:1;}
+.result-setlist-1rm{color:var(--muted);font-size:.71rem;}
+.result-setlist-best{color:var(--gold);font-size:.71rem;font-weight:700;}
+.result-setlist-rip{color:var(--red);font-size:.71rem;font-weight:700;letter-spacing:.03em;}
+.result-setlist-drop{color:var(--orange);font-size:.75rem;}
 .result-close{width:100%;padding:13px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;transition:background .15s;}
 .result-close:hover{background:#7c74ff;}
 #result-confetti{position:fixed;inset:0;pointer-events:none;z-index:1099;}
@@ -746,7 +760,7 @@ select option,optgroup{background:var(--surface2);}
       <div id="result-pr-items"></div>
     </div>
     <div class="result-exercises" id="result-exercises">
-      <div class="result-ex-title">Exercises</div>
+      <div class="result-ex-title">📋 Full Set List</div>
       <div id="result-ex-items"></div>
     </div>
     <button class="result-close" onclick="closeResult()">Let's go! 🔥</button>
@@ -1960,13 +1974,15 @@ function updateBlockInfo(bid) {
   const lastDate = [...new Set(all.map(w=>w.date))].sort().pop();
   const lastSets = all.filter(w=>w.date===lastDate).flatMap(w=>w.sets);
   const lastStr  = lastSets.map(s=>(s.failSet?"[RIP]":(s.dropSet?"↓":""))+s.weight+"×"+s.reps).join("  ");
+  const lastVol  = lastSets.reduce((a,s) => a + s.weight*s.reps, 0);
   const restSec  = getRestTime(exName);
   const restStr  = restSec >= 60 ? `${Math.floor(restSec/60)}m${restSec%60?""+restSec%60+"s":""}` : `${restSec}s`;
 
   info.innerHTML = `
     ${pr>0?`<div class="ex-pr-line">🏆 PR: ${pr.toFixed(1)} kg 1RM${prDate?" — "+formatDate(prDate,true):""}</div>`:""}
     <div class="ex-last-line">📅 Last (${formatDate(lastDate,true)}): ${lastStr}</div>
-    <div style="font-size:.7rem;color:rgba(108,99,255,.6);margin-top:3px;">⏱ Rest: ${restStr}</div>`;
+    <div style="font-size:.75rem;color:var(--green);margin-top:3px;font-weight:600;">📊 Last Vol: ${lastVol.toFixed(0)} kg</div>
+    <div style="font-size:.7rem;color:rgba(108,99,255,.6);margin-top:2px;">⏱ Rest: ${restStr}</div>`;
   info.classList.add("visible");
 }
 
@@ -2159,7 +2175,7 @@ function showSessionResult(blocks, prBeaten, prevBeaten) {
 
   const totalSets   = blocks.reduce((s, b) => s + b.sets.filter(x => !x.failSet).length, 0);
   const totalVol    = blocks.reduce((s, b) => s + b.sets.reduce((a, x) => a + x.weight * x.reps, 0), 0);
-  const volStr      = totalVol >= 1000 ? (totalVol/1000).toFixed(1)+"t" : totalVol.toFixed(0)+"kg";
+  const volStr      = totalVol.toFixed(0)+"kg";
 
   // Top muscle (primary only)
   const muscleCounts = {};
@@ -2218,13 +2234,47 @@ function showSessionResult(blocks, prBeaten, prevBeaten) {
     prSection.style.display = "none";
   }
 
-  // Exercise breakdown
+  // Full set list (detailed, screenshot-friendly)
   document.getElementById("result-ex-items").innerHTML = blocks.map(b => {
     const vol = b.sets.reduce((a,s) => a + s.weight*s.reps, 0);
-    const sets = b.sets.filter(s=>!s.failSet).length;
-    return `<div class="result-ex-item">
-      <span>${exDisplayName(b.exercise)}</span>
-      <span style="color:var(--muted);">${sets} sets · ${vol.toFixed(0)}kg</span>
+
+    // Find best 1RM index (Epley: w*(1+r/30)) among non-RIP sets
+    let best1rmIdx = -1, best1rmVal = 0;
+    b.sets.forEach((s, i) => {
+      if (!s.failSet && s.reps > 0) {
+        const est = s.weight * (1 + s.reps / 30);
+        if (est > best1rmVal) { best1rmVal = est; best1rmIdx = i; }
+      }
+    });
+
+    const setsHtml = b.sets.map((s, i) => {
+      const isRip  = !!s.failSet;
+      const isDrop = !!s.dropSet && !isRip;
+      const isBest = i === best1rmIdx;
+      const rm     = (!isRip && s.reps > 0) ? s.weight * (1 + s.reps / 30) : null;
+
+      const dropTag = isDrop ? `<span class="result-setlist-drop">↓</span>` : "";
+      const ripTag  = isRip  ? `<span class="result-setlist-rip">RIP</span>` : "";
+      const rmTag   = rm && isBest
+        ? `<span class="result-setlist-best">🏆 ${rm.toFixed(1)}kg 1RM</span>`
+        : rm
+          ? `<span class="result-setlist-1rm">≈${rm.toFixed(1)}kg 1RM</span>`
+          : "";
+
+      return `<div class="result-setlist-row${isRip?" rip-row":""}">
+        <div class="result-setlist-num">${i+1}</div>
+        <span class="result-setlist-main">${s.weight}kg × ${s.reps}</span>
+        ${dropTag}${ripTag}${rmTag}
+      </div>`;
+    }).join("");
+
+    const successSets = b.sets.filter(s=>!s.failSet).length;
+    return `<div class="result-setlist-block">
+      <div class="result-setlist-exname">
+        <span>${exDisplayName(b.exercise)}</span>
+        <span class="result-setlist-exvol">${successSets} sets · ${vol.toFixed(0)}kg</span>
+      </div>
+      <div class="result-setlist-sets">${setsHtml}</div>
     </div>`;
   }).join("");
 
