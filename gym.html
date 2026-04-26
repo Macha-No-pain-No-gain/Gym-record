@@ -62,6 +62,15 @@ select option,optgroup{background:var(--surface2);}
 .btn-add-block{background:rgba(74,222,128,.08);color:var(--green);border:1px dashed rgba(74,222,128,.35);width:100%;padding:10px;border-radius:10px;cursor:pointer;font-size:.88rem;font-weight:600;margin-bottom:16px;transition:all .15s;}
 .btn-add-block:hover{background:rgba(74,222,128,.18);}
 .session-footer{display:flex;gap:9px;align-items:center;padding-top:4px;}
+/* PR Suggestion box */
+.pr-suggest{background:rgba(108,99,255,.06);border:1px solid rgba(108,99,255,.22);border-radius:9px;padding:9px 12px;margin-top:9px;}
+.pr-suggest-title{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);margin-bottom:7px;font-weight:700;}
+.pr-suggest-item{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:.79rem;border-bottom:1px solid rgba(108,99,255,.1);}
+.pr-suggest-item:last-child{border-bottom:none;}
+.pr-suggest-w{font-weight:700;color:var(--text);min-width:56px;}
+.pr-suggest-reps{color:var(--muted);min-width:34px;}
+.pr-suggest-arrow{color:var(--border);}
+.pr-suggest-gain{color:var(--green);font-weight:700;font-size:.76rem;margin-left:auto;}
 /* History */
 .history-filters{display:flex;gap:7px;margin-bottom:18px;flex-wrap:wrap;}
 .filter-chip{padding:5px 13px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:.8rem;transition:all .15s;}
@@ -1862,7 +1871,11 @@ function addBlock(scroll = true) {
       <span>#</span><span>${tl('col_weight')}</span><span>${tl('col_reps')}</span><span>${tl('col_notes')}</span><span style="text-align:center;" title="Drop Set">↓DS</span><span style="text-align:center;" title="Failed set">RIP</span><span></span>
     </div>
     <div id="sets-body-${bid}"></div>
-    <button id="add-set-btn-${bid}" class="btn-add-set" onclick="addSetToBlock('${bid}')">${tl('btn_add_set')}</button>`;
+    <button id="add-set-btn-${bid}" class="btn-add-set" onclick="addSetToBlock('${bid}')">${tl('btn_add_set')}</button>
+    <div class="pr-suggest" id="suggest-${bid}" style="display:none;">
+      <div class="pr-suggest-title">💡 PRを更新できる組み合わせ</div>
+      <div class="pr-suggest-items" id="suggest-items-${bid}"></div>
+    </div>`;
   container.appendChild(div);
 
   populateBlockEx(bid);
@@ -1993,6 +2006,7 @@ function updateBlockInfo(bid) {
     <div style="font-size:.75rem;color:var(--green);margin-top:3px;font-weight:600;">📊 Last Vol: ${lastVol.toFixed(0)} kg</div>
     <div style="font-size:.7rem;color:rgba(108,99,255,.6);margin-top:2px;">⏱ Rest: ${restStr}</div>`;
   info.classList.add("visible");
+  updatePRSuggest(bid);
 }
 
 // filterBlockEx and searchBlockEx now unified into populateBlockEx
@@ -2063,6 +2077,8 @@ function addSetToBlock(bid) {
       updateTimerUI();
       openTimer(); startTimer();
     }
+    // Refresh PR suggestions after each set is recorded
+    updatePRSuggest(bid);
   };
 
   // Enter key navigation: weight → reps → note → fire+blur
@@ -2070,6 +2086,86 @@ function addSetToBlock(bid) {
   repsEl.addEventListener("keydown",   e => { if(e.key==="Enter"){e.preventDefault(); noteEl.focus();} });
   noteEl.addEventListener("keydown",   e => { if(e.key==="Enter"){e.preventDefault(); fire(); noteEl.blur();} });
   repsEl.addEventListener("blur", fire);
+}
+
+// ── PR Suggestion helpers ────────────────────────────────────────────────────
+// Snap weight UP to nearest achievable value with 1kg & 2.5kg plates (per side).
+// With a 20kg bar: valid extras are 0,2,4,5,6,7,8,... (2a+5b for a,b≥0).
+// The only invalid extras are 1 and 3; everything else ≥ 0 is reachable.
+function snapToPlateWeight(minW) {
+  let w = Math.ceil(minW * 10) / 10; // round up to 0.1kg first
+  // Assume 20kg standard bar; handle near-bar edge cases
+  if (w < 20) return 20;
+  const extra = Math.round((w - 20) * 10) / 10;
+  if (extra === 1)   return 22; // 21 not achievable → jump to 22
+  if (extra === 3)   return 24; // 23 not achievable → jump to 24
+  // If fractional (e.g. 22.5): round up to nearest integer since
+  // 1kg & 2.5kg plates only give whole-kg total increments
+  if (w !== Math.floor(w)) {
+    w = Math.ceil(w);
+    const ex2 = w - 20;
+    if (ex2 === 1) return 22;
+    if (ex2 === 3) return 24;
+  }
+  return w;
+}
+
+function updatePRSuggest(bid) {
+  const box      = document.getElementById(`suggest-${bid}`);
+  const itemsEl  = document.getElementById(`suggest-items-${bid}`);
+  if (!box || !itemsEl) return;
+
+  const exName = document.getElementById(`exname-${bid}`)?.value;
+  if (!exName) { box.style.display = "none"; return; }
+
+  // Historical best 1RM (from saved workouts)
+  const histSets = workouts
+    .filter(w => w.exercise === exName)
+    .flatMap(w => w.sets.filter(s => !s.dropSet && !s.failSet));
+  const histBest = histSets.length > 0
+    ? Math.max(...histSets.map(s => calc1RM(s.weight, s.reps))) : 0;
+
+  // Current session's best 1RM (from DOM — live inputs)
+  const block = document.getElementById(`block-${bid}`);
+  const curBest = block ? Math.max(
+    ...[...block.querySelectorAll(".set-row")].map(row => {
+      if (row.dataset.drop === "1" || row.dataset.rip === "1") return 0;
+      const sid = row.id.replace("set-", "");
+      const w = parseFloat(document.getElementById(`w-${sid}`)?.value) || 0;
+      const r = parseInt(document.getElementById(`r-${sid}`)?.value)   || 0;
+      return (w > 0 && r > 0) ? calc1RM(w, r) : 0;
+    }), 0) : 0;
+
+  const best1rm = Math.max(histBest, curBest);
+  if (best1rm <= 0) { box.style.display = "none"; return; }
+
+  // For each rep count, find the minimum plate-snapped weight that beats best1rm
+  const repOptions = [1, 2, 3, 4, 5, 6, 8];
+  const suggestions = [];
+  const seenW = new Set();
+
+  for (const reps of repOptions) {
+    // Epley inverse: weight needed = best1rm / (1 + reps/30)
+    const minW = best1rm / (1 + reps / 30);
+    const w    = snapToPlateWeight(minW + 0.5); // +0.5 ensures we strictly beat it
+    if (seenW.has(w)) continue; // skip duplicate weights
+    seenW.add(w);
+    const new1rm = calc1RM(w, reps);
+    const delta  = new1rm - best1rm;
+    if (delta > 0) suggestions.push({ weight: w, reps, new1rm, delta });
+  }
+
+  if (!suggestions.length) { box.style.display = "none"; return; }
+
+  box.style.display = "block";
+  itemsEl.innerHTML = suggestions.slice(0, 5).map(s =>
+    `<div class="pr-suggest-item">
+      <span class="pr-suggest-w">${s.weight}kg</span>
+      <span class="pr-suggest-reps">× ${s.reps}回</span>
+      <span class="pr-suggest-arrow">→</span>
+      <span class="pr-suggest-gain">1RM +${s.delta.toFixed(1)}kg 更新!</span>
+    </div>`
+  ).join("");
 }
 
 function showSetRM(sid, rm) {
