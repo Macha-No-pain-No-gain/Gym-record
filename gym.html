@@ -2089,26 +2089,45 @@ function addSetToBlock(bid) {
 }
 
 // ── PR Suggestion helpers ────────────────────────────────────────────────────
-// Snap weight UP to nearest achievable value with 1kg & 2.5kg plates (per side).
-// With a 20kg bar: valid extras are 0,2,4,5,6,7,8,... (2a+5b for a,b≥0).
-// The only invalid extras are 1 and 3; everything else ≥ 0 is reachable.
-function snapToPlateWeight(minW) {
-  let w = Math.ceil(minW * 10) / 10; // round up to 0.1kg first
-  // Assume 20kg standard bar; handle near-bar edge cases
-  if (w < 20) return 20;
-  const extra = Math.round((w - 20) * 10) / 10;
-  if (extra === 1)   return 22; // 21 not achievable → jump to 22
-  if (extra === 3)   return 24; // 23 not achievable → jump to 24
-  // If fractional (e.g. 22.5): round up to nearest integer since
-  // 1kg & 2.5kg plates only give whole-kg total increments
-  if (w !== Math.floor(w)) {
-    w = Math.ceil(w);
-    const ex2 = w - 20;
-    if (ex2 === 1) return 22;
-    if (ex2 === 3) return 24;
+
+// Bilateral dumbbell exercises: you add one dumbbell to EACH hand → +2kg/hand = +4kg total.
+const BILATERAL_DB_EX = new Set([
+  "Dumbbell Bench Press", "Dumbbell Incline Bench Press", "Dumbbell Decline Bench Press",
+  "Dumbbell Chest Fly", "Dumbbell Overhead Press", "Seated Dumbbell Press",
+  "Dumbbell Romanian Deadlift",
+]);
+
+// Snap weight UP to nearest achievable value given the equipment type.
+//   Barbell  : 1kg/side (+2kg) and 2.5kg/side (+5kg) → valid total extras are 0,2,4,5,6,7,8,...
+//              (all integers ≥ 0 except 1 and 3, assuming 20kg bar)
+//   Dumbbell bilateral : dumbbells come in 2kg steps; both hands → +4kg minimum total
+//   Dumbbell unilateral / single DB : 2kg steps
+function snapWeight(minW, exName) {
+  const name = exName || "";
+
+  // ── Bilateral dumbbell (4kg step) ─────────────────────────────────────────
+  if (BILATERAL_DB_EX.has(name)) {
+    return Math.ceil(minW / 4) * 4;
   }
+
+  // ── Single / unilateral dumbbell (2kg step) ────────────────────────────────
+  if (name.includes("Dumbbell") || name === "Goblet Squat") {
+    return Math.ceil(minW / 2) * 2;
+  }
+
+  // ── Barbell / other : plate snap (1kg & 2.5kg per side → +2kg or +5kg) ────
+  // With a 20kg bar, valid extras are 0,2,4,5,6,7,8,... (2a+5b, a,b≥0).
+  // The only non-achievable extras are 1 and 3.
+  let w = Math.ceil(minW);
+  if (w < 20) return 20;
+  const extra = w - 20;
+  if (extra === 1) return 22;
+  if (extra === 3) return 24;
   return w;
 }
+
+// Keep old name as alias (used elsewhere in code)
+function snapToPlateWeight(minW) { return snapWeight(minW, ""); }
 
 function updatePRSuggest(bid) {
   const box      = document.getElementById(`suggest-${bid}`);
@@ -2147,7 +2166,7 @@ function updatePRSuggest(bid) {
   for (const reps of repOptions) {
     // Epley inverse: weight needed = best1rm / (1 + reps/30)
     const minW = best1rm / (1 + reps / 30);
-    const w    = snapToPlateWeight(minW + 0.5); // +0.5 ensures we strictly beat it
+    const w    = snapWeight(minW + 0.5, exName); // snap to equipment-specific increment
     if (seenW.has(w)) continue; // skip duplicate weights
     seenW.add(w);
     const new1rm = calc1RM(w, reps);
