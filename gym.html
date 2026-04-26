@@ -200,6 +200,8 @@ select option,optgroup{background:var(--surface2);}
 .result-pr-title{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
 .result-pr-item{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);border-radius:8px;padding:8px 12px;font-size:.83rem;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;}
 .result-pr-new{color:var(--gold);font-weight:700;}
+.result-pr-delta{font-size:.71rem;color:var(--muted);margin-top:3px;}
+.result-pr-delta .up{color:var(--green);font-weight:700;}
 .result-exercises{margin-bottom:20px;}
 .result-ex-title{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;}
 .result-ex-item{display:flex;justify-content:space-between;font-size:.82rem;padding:5px 0;border-bottom:1px solid var(--border);}
@@ -1088,6 +1090,7 @@ const EXERCISES = [
   {name:"Overhead Tricep Extension",   cat:"weights", muscles:["triceps"]},
   {name:"Skull Crusher",               cat:"weights", muscles:["triceps","forearms"]},
   {name:"Close-Grip Bench Press",      cat:"weights", muscles:["triceps","chest","shoulders"]},
+  {name:"Narrow Bench Press",          cat:"weights", muscles:["triceps","chest","shoulders"]},
 
   // ── Back (Pull) ────────────────────────────────────────────────────────────
   // Row: lats & rhomboids primary; traps & biceps secondary
@@ -1110,7 +1113,8 @@ const EXERCISES = [
   {name:"Cable Rear Delt Fly",         cat:"weights", muscles:["shoulders","back","traps"]},
 
   // ── Legs ───────────────────────────────────────────────────────────────────
-  {name:"Squat",                       cat:"weights", muscles:["quads","glutes","hamstrings","lower back"]},
+  {name:"High Bar Squat",              cat:"weights", muscles:["quads","glutes","hamstrings","lower back"]},
+  {name:"Low Bar Squat",               cat:"weights", muscles:["glutes","hamstrings","quads","lower back"]},
   {name:"Front Squat",                 cat:"weights", muscles:["quads","glutes","lower back"]},
   {name:"Goblet Squat",                cat:"weights", muscles:["quads","glutes","hamstrings"]},
   {name:"Deadlift",                    cat:"weights", muscles:["back","glutes","hamstrings","traps","forearms"]},
@@ -1217,6 +1221,7 @@ const EX_JA = {
   "Overhead Tricep Extension":    "オーバーヘッドトライセップスエクステンション",
   "Skull Crusher":                "スカルクラッシャー",
   "Close-Grip Bench Press":       "ナローグリップベンチプレス",
+  "Narrow Bench Press":           "ナローベンチプレス",
   // Back (Pull)
   "Barbell Row":                  "バーベルロウ",
   "Dumbbell Row":                 "ダンベルロウ",
@@ -1238,7 +1243,8 @@ const EX_JA = {
   "Rear Delt Raise":              "リアデルトレイズ",
   "Cable Rear Delt Fly":          "ケーブルリアデルトフライ",
   // Legs
-  "Squat":                        "スクワット",
+  "High Bar Squat":               "ハイバースクワット",
+  "Low Bar Squat":                "ローバースクワット",
   "Front Squat":                  "フロントスクワット",
   "Goblet Squat":                 "ゴブレットスクワット",
   "Deadlift":                     "デッドリフト",
@@ -1320,6 +1326,7 @@ const EX_PPL = {
   "Overhead Tricep Extension":   {ppl:"push",sub:"Triceps"},
   "Skull Crusher":               {ppl:"push",sub:"Triceps"},
   "Close-Grip Bench Press":      {ppl:"push",sub:"Triceps"},
+  "Narrow Bench Press":          {ppl:"push",sub:"Triceps"},
   // PULL — Back
   "Barbell Row":                 {ppl:"pull",sub:"Back"},
   "Dumbbell Row":                {ppl:"pull",sub:"Back"},
@@ -1341,7 +1348,8 @@ const EX_PPL = {
   "Rear Delt Raise":             {ppl:"pull",sub:"Rear Shoulder"},
   "Cable Rear Delt Fly":         {ppl:"pull",sub:"Rear Shoulder"},
   // LEGS
-  "Squat":                      {ppl:"legs",sub:"Legs"},
+  "High Bar Squat":             {ppl:"legs",sub:"Legs"},
+  "Low Bar Squat":              {ppl:"legs",sub:"Legs"},
   "Front Squat":                {ppl:"legs",sub:"Legs"},
   "Goblet Squat":               {ppl:"legs",sub:"Legs"},
   "Deadlift":                   {ppl:"legs",sub:"Legs"},
@@ -1400,7 +1408,7 @@ function getExPPL(ex) {
 
 const REST_TIMES = {
   // Heavy compounds — 3 min
-  "Squat":180,"Front Squat":180,"Deadlift":180,
+  "High Bar Squat":180,"Low Bar Squat":180,"Front Squat":180,"Deadlift":180,
   "Barbell Bench Press":180,"Barbell Overhead Press":180,
   "Barbell Row":180,"T-Bar Row":180,"Romanian Deadlift":150,
   // Moderate compounds — 2 min
@@ -1412,7 +1420,7 @@ const REST_TIMES = {
   "Dumbbell Romanian Deadlift":120,
   "Leg Press":120,"Lat Pulldown":120,"Cable Row":120,"Hip Thrust":120,
   "Bulgarian Split Squat":120,"Hack Squat":150,
-  "Close-Grip Bench Press":120,
+  "Close-Grip Bench Press":120,"Narrow Bench Press":120,
   // Calisthenics compounds
   "Pull-Up":120,"Dip":120,"Ring Row":120,"Muscle-Up":150,
   "Handstand Push-Up":150,"Front Lever":150,"Planche":150,
@@ -1519,6 +1527,7 @@ const EXERCISE_RENAMES = {
   "Decline Bench Press": "Barbell Decline Bench Press",
   "Overhead Press":      "Barbell Overhead Press",
   "Chest Fly":           "Dumbbell Chest Fly",
+  "Squat":               "High Bar Squat",   // migrate old "Squat" records to High Bar Squat
 };
 function migrateExerciseNames(data) {
   let changed = false;
@@ -2224,12 +2233,20 @@ function showSessionResult(blocks, prBeaten, prevBeaten) {
   const prSection = document.getElementById("result-pr-list");
   if (prBeaten.length) {
     prSection.style.display = "block";
-    document.getElementById("result-pr-items").innerHTML = prBeaten.map(p =>
-      `<div class="result-pr-item">
-        <span>${p.exercise}</span>
-        <span class="result-pr-new">${p.new1rm.toFixed(1)} kg 1RM ↑</span>
-      </div>`
-    ).join("");
+    document.getElementById("result-pr-items").innerHTML = prBeaten.map(p => {
+      const delta = p.new1rm - p.old1rm;
+      const deltaStr = delta > 0 ? `<span class="up">+${delta.toFixed(1)}kg</span>` : "";
+      const prevStr  = p.old1rm > 0
+        ? `<div class="result-pr-delta">前回 ${p.old1rm.toFixed(1)}kg → ${p.new1rm.toFixed(1)}kg ${deltaStr}</div>`
+        : `<div class="result-pr-delta">🎉 初PR!</div>`;
+      return `<div class="result-pr-item" style="align-items:flex-start;">
+        <div>
+          <div style="font-weight:600;font-size:.84rem;">${exDisplayName(p.exercise)}</div>
+          ${prevStr}
+        </div>
+        <span class="result-pr-new" style="white-space:nowrap;">${p.new1rm.toFixed(1)} kg 🏆</span>
+      </div>`;
+    }).join("");
   } else {
     prSection.style.display = "none";
   }
