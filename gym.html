@@ -233,6 +233,14 @@ select option,optgroup{background:var(--surface2);}
 .result-setlist-rip{color:var(--red);font-size:.71rem;font-weight:700;letter-spacing:.03em;}
 .result-setlist-drop{color:var(--orange);font-size:.75rem;}
 .result-close{width:100%;padding:13px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;transition:background .15s;}
+/* Custom confirm dialog (replaces window.confirm — blocked in iOS PWA mode) */
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1200;display:flex;align-items:center;justify-content:center;padding:20px;}
+.confirm-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px 20px;width:100%;max-width:320px;text-align:center;}
+.confirm-msg{font-size:.92rem;margin-bottom:20px;line-height:1.5;}
+.confirm-btns{display:flex;gap:10px;}
+.confirm-btns button{flex:1;padding:11px;border-radius:9px;border:none;font-size:.88rem;font-weight:700;cursor:pointer;}
+.confirm-cancel-btn{background:var(--surface2);color:var(--muted);}
+.confirm-ok-btn{background:var(--red);color:#fff;}
 .result-close:hover{background:#7c74ff;}
 #result-confetti{position:fixed;inset:0;pointer-events:none;z-index:1099;}
 /* Volume tab */
@@ -778,6 +786,17 @@ select option,optgroup{background:var(--surface2);}
       <div id="result-ex-items"></div>
     </div>
     <button class="result-close" onclick="closeResult()">Let's go! 🔥</button>
+  </div>
+</div>
+
+<!-- ══ CUSTOM CONFIRM DIALOG ══════════════════════════════════════ -->
+<div class="confirm-overlay" id="confirm-overlay" style="display:none;">
+  <div class="confirm-box">
+    <div class="confirm-msg" id="confirm-msg"></div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel-btn" id="confirm-cancel">キャンセル</button>
+      <button class="confirm-ok-btn" id="confirm-ok">削除</button>
+    </div>
   </div>
 </div>
 
@@ -2538,9 +2557,10 @@ function stopConfetti() {
 
 function clearAllBlocks() {
   if (document.querySelectorAll(".ex-block").length === 0) return;
-  if (!confirm("Discard all exercises in this session?")) return;
-  document.getElementById("session-blocks").innerHTML = "";
-  blockCount = 0; addBlock(false);
+  showConfirm("このセッションの入力をすべて破棄しますか？", () => {
+    document.getElementById("session-blocks").innerHTML = "";
+    blockCount = 0; addBlock(false);
+  }, "破棄", "キャンセル");
 }
 
 // ─── 1RM FORMULAS ────────────────────────────────────────────────────────────
@@ -2617,16 +2637,32 @@ function renderHistory() {
   }).join("");
 }
 
+// Custom confirm modal — replaces window.confirm() which is silently blocked
+// in iOS Safari standalone (PWA) mode.
+function showConfirm(message, onOK, okLabel = "削除", cancelLabel = "キャンセル") {
+  const overlay = document.getElementById("confirm-overlay");
+  const msgEl   = document.getElementById("confirm-msg");
+  const okBtn   = document.getElementById("confirm-ok");
+  const cancelBtn = document.getElementById("confirm-cancel");
+  msgEl.textContent  = message;
+  okBtn.textContent  = okLabel;
+  cancelBtn.textContent = cancelLabel;
+  overlay.style.display = "flex";
+  const close = () => { overlay.style.display = "none"; };
+  okBtn.onclick     = () => { close(); onOK(); };
+  cancelBtn.onclick = close;
+}
+
 function deleteDate(date) {
-  if (!confirm(`Delete all workouts on ${formatDate(date)}?`)) return;
-  const idsToDelete = workouts.filter(w => w.date === date).map(w => String(w.id));
-  workouts = workouts.filter(w => w.date !== date);
-  saveAll();
-  // Explicitly delete from Supabase (upsert in syncToCloud never removes records)
-  if (sbClient && sbUser && idsToDelete.length) {
-    sbClient.from("workouts").delete().in("id", idsToDelete).catch(() => {});
-  }
-  renderHistory();
+  showConfirm(`${formatDate(date)} のワークアウトをすべて削除しますか？`, () => {
+    const idsToDelete = workouts.filter(w => w.date === date).map(w => String(w.id));
+    workouts = workouts.filter(w => w.date !== date);
+    saveAll();
+    if (sbClient && sbUser && idsToDelete.length) {
+      sbClient.from("workouts").delete().in("id", idsToDelete).catch(() => {});
+    }
+    renderHistory();
+  });
 }
 
 // ─── EDIT HISTORY MODAL ──────────────────────────────────────────────────────
@@ -2736,16 +2772,18 @@ function saveEditModal() {
   });
 
   if (!sets.length) {
-    if (!confirm("No valid sets. Delete this exercise entry?")) return;
-    const idToDelete = String(workouts[editTargetIdx]?.id || "");
-    workouts.splice(editTargetIdx, 1);
-    // Explicitly delete from Supabase
-    if (sbClient && sbUser && idToDelete) {
-      sbClient.from("workouts").delete().eq("id", idToDelete).catch(() => {});
-    }
-  } else {
-    workouts[editTargetIdx] = { ...workouts[editTargetIdx], exercise: name, date, cat, sets };
+    showConfirm("セットが0件です。この種目を削除しますか？", () => {
+      const idToDelete = String(workouts[editTargetIdx]?.id || "");
+      workouts.splice(editTargetIdx, 1);
+      if (sbClient && sbUser && idToDelete) {
+        sbClient.from("workouts").delete().eq("id", idToDelete).catch(() => {});
+      }
+      saveAll(); closeEditModal(); renderHistory();
+      showToast("🗑️ 削除しました");
+    });
+    return;
   }
+  workouts[editTargetIdx] = { ...workouts[editTargetIdx], exercise: name, date, cat, sets };
   saveAll();
   closeEditModal();
   renderHistory();
@@ -3522,7 +3560,8 @@ function hasUnsavedData() {
 }
 function showPage(id){
   if (id !== "log" && hasUnsavedData()) {
-    if (!confirm("You have unsaved session data. Leave anyway?")) return;
+    showConfirm("未保存のセッションがあります。移動しますか？", () => showPage(id), "移動", "戻る");
+    return;
   }
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
