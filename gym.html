@@ -149,6 +149,9 @@ select option,optgroup{background:var(--surface2);}
 .ex-pr-line{color:var(--gold);font-weight:700;margin-bottom:3px;font-size:.8rem;}
 .ex-last-line{color:var(--muted);line-height:1.5;}
 .set-rm-line{font-size:.68rem;color:var(--accent);opacity:.8;padding:1px 0 4px 39px;}
+.set-pr-hint{font-size:.73rem;padding:1px 0 4px 39px;}
+.set-pr-hint.achievable{color:var(--gold);}
+.set-pr-hint.sure-pr{color:var(--green);font-weight:600;}
 /* Award toast */
 .toast.award-pr{border-color:var(--gold);background:linear-gradient(135deg,rgba(251,191,36,.15),var(--surface));font-size:1rem;padding:16px 24px;}
 .toast.award-beat{border-color:var(--green);background:linear-gradient(135deg,rgba(74,222,128,.12),var(--surface));}
@@ -969,6 +972,19 @@ async function syncToCloud() {
         date: w.date, exercise: w.exercise, cat: w.cat, muscles: w.muscles, sets: w.sets }))
     ));
   }
+  // Prune: delete cloud records that no longer exist locally
+  // (handles deletions that weren't pushed, e.g. from the old upsert-only bug)
+  const localIds = new Set(workouts.map(w => String(w.id)));
+  p.push(
+    sbClient.from("workouts").select("id").eq("user_id", uid)
+      .then(({ data }) => {
+        if (!data) return;
+        const orphans = data.map(r => r.id).filter(id => !localIds.has(id));
+        if (orphans.length) {
+          return sbClient.from("workouts").delete().in("id", orphans).catch(() => {});
+        }
+      })
+  );
   if (bodyWeights.length) {
     p.push(sbClient.from("body_weights").upsert(
       bodyWeights.map(b => ({ user_id: uid, date: b.date, weight: b.weight })),
@@ -2054,6 +2070,10 @@ function addSetToBlock(bid) {
     <button class="icon-btn rip-btn" id="rip-${sid}" onclick="toggleRIPBlock('${sid}')" title="Failed / RIP set">RIP</button>
     <button class="icon-btn del-btn" onclick="this.closest('.set-row').remove()">✕</button>`;
   body.appendChild(row);
+  // Create the weight-PR hint element right below the row (hidden by default)
+  const hintDiv = document.createElement("div");
+  hintDiv.id = `pw-${sid}`; hintDiv.className = "set-pr-hint"; hintDiv.style.display = "none";
+  body.appendChild(hintDiv);
 
   const weightEl = document.getElementById(`w-${sid}`);
   const repsEl   = document.getElementById(`r-${sid}`);
@@ -2067,8 +2087,9 @@ function addSetToBlock(bid) {
     const r = parseInt(repsEl.value) || 0;
     if (r > 0) {
       const isFail = document.getElementById(`rip-${sid}`)?.classList.contains("active");
-      // Show 1RM only for non-failed sets
+      // Show 1RM only for non-failed sets; hide the weight-PR hint
       if (w > 0 && !isFail) showSetRM(sid, calc1RM(w, r));
+      hintDiv.style.display = "none";
       // Set exercise-specific rest time
       const exName = document.getElementById(`exname-${bid}`)?.value;
       const rest = getRestTime(exName);
@@ -2086,6 +2107,8 @@ function addSetToBlock(bid) {
   repsEl.addEventListener("keydown",   e => { if(e.key==="Enter"){e.preventDefault(); noteEl.focus();} });
   noteEl.addEventListener("keydown",   e => { if(e.key==="Enter"){e.preventDefault(); fire(); noteEl.blur();} });
   repsEl.addEventListener("blur", fire);
+  // Show PR-target reps as soon as weight is typed
+  weightEl.addEventListener("input", () => showWeightPRHint(sid, bid));
 }
 
 // ── PR Suggestion helpers ────────────────────────────────────────────────────
@@ -2185,6 +2208,47 @@ function updatePRSuggest(bid) {
       <span class="pr-suggest-gain">1RM +${s.delta.toFixed(1)}kg 更新!</span>
     </div>`
   ).join("");
+}
+
+// ── Weight → PR hint helpers ──────────────────────────────────────────────────
+// Best historical 1RM for an exercise (used for the weight-entry PR hint)
+function getBest1rmForEx(exName) {
+  if (!exName) return 0;
+  const sets = workouts.filter(w => w.exercise === exName)
+    .flatMap(w => w.sets.filter(s => !s.dropSet && !s.failSet));
+  return sets.length ? Math.max(...sets.map(s => calc1RM(s.weight, s.reps))) : 0;
+}
+// How many reps needed at 'weight' to beat 'best1rm'? null if impossible (>12 reps)
+function repsToBeaterPR(weight, best1rm) {
+  if (weight <= 0 || best1rm <= 0) return null;
+  if (weight >= best1rm) return 1;               // 1 rep already beats it
+  const r = Math.ceil(30 * ((best1rm + 0.1) / weight - 1)); // Epley inverse
+  return (r >= 1 && r <= 12) ? r : null;
+}
+// Show/update the weight-PR hint below a set row
+function showWeightPRHint(sid, bid) {
+  const hintEl = document.getElementById(`pw-${sid}`);
+  if (!hintEl) return;
+  // If reps are already filled, the 1RM line takes over — hide this hint
+  const repsVal = parseInt(document.getElementById(`r-${sid}`)?.value) || 0;
+  if (repsVal > 0) { hintEl.style.display = "none"; return; }
+
+  const exName  = document.getElementById(`exname-${bid}`)?.value;
+  const w       = parseFloat(document.getElementById(`w-${sid}`)?.value) || 0;
+  const best1rm = getBest1rmForEx(exName);
+
+  if (w <= 0 || best1rm <= 0) { hintEl.style.display = "none"; return; }
+  const r = repsToBeaterPR(w, best1rm);
+  if (r === null) { hintEl.style.display = "none"; return; }
+
+  hintEl.style.display = "";
+  if (r <= 1) {
+    hintEl.className = "set-pr-hint sure-pr";
+    hintEl.textContent = "💪 この重量1回でPR更新！";
+  } else {
+    hintEl.className = "set-pr-hint achievable";
+    hintEl.textContent = `💡 ${r}回でPR更新！`;
+  }
 }
 
 function showSetRM(sid, rm) {
@@ -2555,8 +2619,14 @@ function renderHistory() {
 
 function deleteDate(date) {
   if (!confirm(`Delete all workouts on ${formatDate(date)}?`)) return;
+  const idsToDelete = workouts.filter(w => w.date === date).map(w => String(w.id));
   workouts = workouts.filter(w => w.date !== date);
-  saveAll(); renderHistory();
+  saveAll();
+  // Explicitly delete from Supabase (upsert in syncToCloud never removes records)
+  if (sbClient && sbUser && idsToDelete.length) {
+    sbClient.from("workouts").delete().in("id", idsToDelete).catch(() => {});
+  }
+  renderHistory();
 }
 
 // ─── EDIT HISTORY MODAL ──────────────────────────────────────────────────────
@@ -2667,7 +2737,12 @@ function saveEditModal() {
 
   if (!sets.length) {
     if (!confirm("No valid sets. Delete this exercise entry?")) return;
+    const idToDelete = String(workouts[editTargetIdx]?.id || "");
     workouts.splice(editTargetIdx, 1);
+    // Explicitly delete from Supabase
+    if (sbClient && sbUser && idToDelete) {
+      sbClient.from("workouts").delete().eq("id", idToDelete).catch(() => {});
+    }
   } else {
     workouts[editTargetIdx] = { ...workouts[editTargetIdx], exercise: name, date, cat, sets };
   }
@@ -3333,21 +3408,51 @@ function speakVoiceQuote() {
   showToast(`💬 "${quote}"`, "", 5000);
 }
 
+// ── Shared AudioContext (avoids "suspended" state on iOS/Android) ─────────────
+// Mobile browsers require AudioContext to be created AND resumed inside a user
+// gesture. By keeping one shared context and resuming it before every sound, we
+// ensure audio works even when the timer fires with no active gesture.
+let _sharedAudioCtx = null;
+function _getAudioCtx() {
+  if (!_sharedAudioCtx || _sharedAudioCtx.state === "closed") {
+    _sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return _sharedAudioCtx;
+}
+// Warm-up: unlock the audio context on first user interaction
+(function _unlockAudioOnInteraction() {
+  const unlock = () => {
+    try {
+      const ctx = _getAudioCtx();
+      if (ctx.state === "suspended") ctx.resume();
+      // Play an inaudible buffer to fully unlock iOS
+      const buf = ctx.createBuffer(1, 1, 22050);
+      const src = ctx.createBufferSource();
+      src.buffer = buf; src.connect(ctx.destination); src.start(0);
+    } catch(e) {}
+  };
+  ["touchstart","touchend","mousedown","keydown"].forEach(ev =>
+    document.addEventListener(ev, unlock, { once: true, passive: true })
+  );
+})();
+
 // Short soft chime to prime the ear before the quote
 function _playAttentionChime() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const now = ctx.currentTime;
-    // Two clean sine tones: rise then settle
-    [[523, 0, 0.18], [659, 0.15, 0.18]].forEach(([freq, t, dur]) => {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = "sine"; o.frequency.value = freq;
-      o.connect(g); g.connect(ctx.destination);
-      g.gain.setValueAtTime(0, now + t);
-      g.gain.linearRampToValueAtTime(0.35, now + t + 0.04);
-      g.gain.exponentialRampToValueAtTime(0.001, now + t + dur);
-      o.start(now + t); o.stop(now + t + dur + 0.05);
-    });
+    const ctx = _getAudioCtx();
+    const play = () => {
+      const now = ctx.currentTime;
+      [[523, 0, 0.18], [659, 0.15, 0.18]].forEach(([freq, t, dur]) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = "sine"; o.frequency.value = freq;
+        o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0, now + t);
+        g.gain.linearRampToValueAtTime(0.35, now + t + 0.04);
+        g.gain.exponentialRampToValueAtTime(0.001, now + t + dur);
+        o.start(now + t); o.stop(now + t + dur + 0.05);
+      });
+    };
+    ctx.state === "suspended" ? ctx.resume().then(play) : play();
   } catch(e) {}
 }
 
@@ -3368,15 +3473,18 @@ function loadAlarmModeSetting(){
 
 function _playRawBeep(){
   try{
-    const ctx = new(window.AudioContext||window.webkitAudioContext)();
-    [0, 0.15, 0.3].forEach(t => {
-      const osc = ctx.createOscillator(), gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(.7, ctx.currentTime + t);
-      gain.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + t + .35);
-      osc.start(ctx.currentTime + t); osc.stop(ctx.currentTime + t + .35);
-    });
+    const ctx = _getAudioCtx();
+    const play = () => {
+      [0, 0.15, 0.3].forEach(t => {
+        const osc = ctx.createOscillator(), gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(.7, ctx.currentTime + t);
+        gain.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + t + .35);
+        osc.start(ctx.currentTime + t); osc.stop(ctx.currentTime + t + .35);
+      });
+    };
+    ctx.state === "suspended" ? ctx.resume().then(play) : play();
   }catch(e){}
 }
 
