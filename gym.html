@@ -1033,8 +1033,11 @@ async function loadFromCloud() {
     sbClient.from("custom_exercises").select("*").eq("user_id", uid),
   ]);
   if (!wR.error && wR.data) {
-    workouts = wR.data.map(w => ({ id: w.id, sessionId: w.session_id, date: w.date,
-      exercise: w.exercise, cat: w.cat, muscles: w.muscles||[], sets: w.sets||[] }));
+    // Filter out any IDs that were deleted locally (prevents restore on reload)
+    workouts = wR.data
+      .filter(w => !_deletedIds.has(String(w.id)))
+      .map(w => ({ id: w.id, sessionId: w.session_id, date: w.date,
+        exercise: w.exercise, cat: w.cat, muscles: w.muscles||[], sets: w.sets||[] }));
     localStorage.setItem("gymlog_workouts", JSON.stringify(workouts));
   }
   if (!bR.error && bR.data) {
@@ -1589,6 +1592,12 @@ function migrateExerciseNames(data) {
 let workouts        = migrateExerciseNames(JSON.parse(localStorage.getItem("gymlog_workouts") || "[]"));
 let bodyWeights     = JSON.parse(localStorage.getItem("gymlog_bw")        || "[]");
 let customExercises = JSON.parse(localStorage.getItem("gymlog_custom")    || "[]");
+// Track locally-deleted workout IDs so loadFromCloud never restores them
+let _deletedIds     = new Set(JSON.parse(localStorage.getItem("gymlog_deleted_ids") || "[]"));
+function markAsDeleted(ids) {
+  ids.forEach(id => _deletedIds.add(String(id)));
+  localStorage.setItem("gymlog_deleted_ids", JSON.stringify([..._deletedIds]));
+}
 let bodyRange = 7;
 let historyFilter = "all";
 let chartMain = null, chartCat = null, chartFreq = null, chartBW = null;
@@ -2618,7 +2627,7 @@ function renderHistory() {
     const totalSets = ws.reduce((s,w) => s+w.sets.length, 0);
     const totalVol  = ws.reduce((s,w) => s+w.sets.reduce((a,set) => a+set.weight*set.reps, 0), 0);
     const exItems = ws.map(w => {
-      const wIdx     = workouts.indexOf(w);
+      const wId      = String(w.id);
       const mainSets = w.sets.filter(s => !s.dropSet && !s.failSet);
       const best1rm  = Math.max(...mainSets.map(s => calc1RM(s.weight, s.reps)), 0);
       const isPR     = best1rm > 0 && Math.abs(best1rm - (allPRs[w.exercise]||0)) < 0.01;
@@ -2629,7 +2638,7 @@ function renderHistory() {
           <span class="badge badge-${w.cat}">${w.cat}</span>
           ${isPR ? '<span class="badge badge-pr">🏆 PR</span>' : ""}
           ${best1rm>0?`<span style="font-size:.7rem;color:var(--muted);">1RM ~${best1rm.toFixed(1)}kg</span>`:""}
-          <button onclick="openEditModal(${wIdx})" style="margin-left:6px;background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:.7rem;padding:2px 7px;line-height:1.6;">✏️ Edit</button>
+          <button onclick="openEditModal('${wId}')" style="margin-left:6px;background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:.7rem;padding:2px 7px;line-height:1.6;">✏️ Edit</button>
         </div>
         <div class="sets-summary">${summary}</div>
       </div>`;
@@ -2683,6 +2692,7 @@ function armDeleteDate(date, btn) {
   if (btn.dataset.armed === "1") {
     // Second tap → actually delete
     const idsToDelete = workouts.filter(w => w.date === date).map(w => String(w.id));
+    markAsDeleted(idsToDelete);
     workouts = workouts.filter(w => w.date !== date);
     saveAll();
     if (sbClient && sbUser && idsToDelete.length) {
@@ -2723,9 +2733,14 @@ function deleteDate(date) {
 // ─── EDIT HISTORY MODAL ──────────────────────────────────────────────────────
 let editTargetIdx = -1;
 
-function openEditModal(wIdx) {
-  editTargetIdx = wIdx;
-  const w = workouts[wIdx];
+function openEditModal(idOrIdx) {
+  // Accept either a workout ID (string) or legacy array index (number)
+  if (typeof idOrIdx === "string") {
+    editTargetIdx = workouts.findIndex(w => String(w.id) === idOrIdx);
+  } else {
+    editTargetIdx = idOrIdx;
+  }
+  const w = workouts[editTargetIdx];
   if (!w) return;
 
   // Populate exercise name datalist
@@ -2805,6 +2820,7 @@ function deleteEditSet(i) {
       // No sets left — offer to delete the whole exercise entry
       showConfirm("セットが0件です。この種目ごと削除しますか？", () => {
         const idToDel = String(workouts[editTargetIdx]?.id || "");
+        markAsDeleted([idToDel]);
         workouts.splice(editTargetIdx, 1);
         saveAll();
         if (sbClient && sbUser && idToDel)
@@ -2883,6 +2899,7 @@ function deleteWorkoutEntry() {
     `「${w.exercise}」(${formatDate(w.date)}) を削除しますか？`,
     () => {
       const idToDelete = String(w.id || "");
+      markAsDeleted([idToDelete]);
       workouts.splice(editTargetIdx, 1);
       saveAll();
       if (sbClient && sbUser && idToDelete) {
