@@ -2640,7 +2640,7 @@ function renderHistory() {
           <div class="workout-date">${formatDate(date)}</div>
           <div class="workout-meta">${ws.length} exercise${ws.length>1?"s":""}  ·  ${totalSets} sets${totalVol>0?`  ·  ${totalVol.toFixed(0)}kg volume`:""}</div>
         </div>
-        <button class="btn btn-danger" style="padding:5px 11px;font-size:.75rem;" onclick="deleteDate('${date}')">Delete</button>
+        <button class="btn btn-danger" id="delbtn-${date}" style="padding:5px 11px;font-size:.75rem;" onclick="armDeleteDate('${date}',this)">Delete</button>
       </div>
       ${exItems}
     </div>`;
@@ -2651,20 +2651,37 @@ function renderHistory() {
 // in iOS Safari standalone (PWA) mode.
 function showConfirm(message, onOK, okLabel = "削除", cancelLabel = "キャンセル") {
   const overlay = document.getElementById("confirm-overlay");
-  const msgEl   = document.getElementById("confirm-msg");
-  const okBtn   = document.getElementById("confirm-ok");
-  const cancelBtn = document.getElementById("confirm-cancel");
-  msgEl.textContent  = message;
-  okBtn.textContent  = okLabel;
-  cancelBtn.textContent = cancelLabel;
+  document.getElementById("confirm-msg").textContent = message;
+
+  // Clone buttons to wipe all stale event listeners
+  const okOld = document.getElementById("confirm-ok");
+  const caOld = document.getElementById("confirm-cancel");
+  const newOk = okOld.cloneNode(true);
+  const newCa = caOld.cloneNode(true);
+  newOk.textContent = okLabel;
+  newCa.textContent = cancelLabel;
+  okOld.replaceWith(newOk);
+  caOld.replaceWith(newCa);
+
   overlay.style.display = "flex";
+
+  let done = false;
   const close = () => { overlay.style.display = "none"; };
-  okBtn.onclick     = () => { close(); onOK(); };
-  cancelBtn.onclick = close;
+  const doOK = (e) => { if (e) e.preventDefault(); if (done) return; done = true; close(); onOK(); };
+  const doCA = (e) => { if (e) e.preventDefault(); if (done) return; done = true; close(); };
+
+  newOk.addEventListener("click",    doOK);
+  newCa.addEventListener("click",    doCA);
+  newOk.addEventListener("touchend", doOK, { passive: false });
+  newCa.addEventListener("touchend", doCA, { passive: false });
+  // Dismiss on overlay background tap
+  overlay.onclick = (e) => { if (e.target === overlay) doCA(e); };
 }
 
-function deleteDate(date) {
-  showConfirm(`${formatDate(date)} のワークアウトをすべて削除しますか？`, () => {
+// Two-step inline confirm for Delete — no modal, no z-index, works on all iOS/Android
+function armDeleteDate(date, btn) {
+  if (btn.dataset.armed === "1") {
+    // Second tap → actually delete
     const idsToDelete = workouts.filter(w => w.date === date).map(w => String(w.id));
     workouts = workouts.filter(w => w.date !== date);
     saveAll();
@@ -2672,7 +2689,35 @@ function deleteDate(date) {
       sbClient.from("workouts").delete().in("id", idsToDelete).catch(() => {});
     }
     renderHistory();
-  });
+    showToast("🗑️ 削除しました");
+    return;
+  }
+  // First tap → arm the button
+  btn.dataset.armed = "1";
+  btn.textContent   = "本当に削除？";
+  btn.style.background = "var(--red)";
+  btn.style.color      = "#fff";
+  btn.style.border     = "none";
+  // Auto-disarm after 3 s
+  setTimeout(() => {
+    if (btn.dataset.armed !== "1") return;
+    btn.dataset.armed    = "0";
+    btn.textContent      = "Delete";
+    btn.style.background = "";
+    btn.style.color      = "";
+    btn.style.border     = "";
+  }, 3000);
+}
+
+function deleteDate(date) {
+  const idsToDelete = workouts.filter(w => w.date === date).map(w => String(w.id));
+  workouts = workouts.filter(w => w.date !== date);
+  saveAll();
+  if (sbClient && sbUser && idsToDelete.length) {
+    sbClient.from("workouts").delete().in("id", idsToDelete).catch(() => {});
+  }
+  renderHistory();
+  showToast("🗑️ 削除しました");
 }
 
 // ─── EDIT HISTORY MODAL ──────────────────────────────────────────────────────
