@@ -2068,6 +2068,15 @@ function cycleSortMode(bid) {
   populateBlockEx(bid);
 }
 
+// Remove a set row (and its PR-hint sibling) from the active session
+function removeSetRow(btn) {
+  const row = btn.closest('.set-row');
+  if (!row) return;
+  const sid = row.id ? row.id.replace('set-', '') : null;
+  if (sid) { const hint = document.getElementById('pw-' + sid); if (hint) hint.remove(); }
+  row.remove();
+}
+
 function addSetToBlock(bid) {
   const exSel = document.getElementById(`exname-${bid}`);
   if (exSel && !exSel.value && blockSetCounts[bid] > 0) {
@@ -2088,7 +2097,7 @@ function addSetToBlock(bid) {
     <input type="text" placeholder="note" id="n-${sid}">
     <button class="icon-btn ds-btn" id="ds-${sid}" onclick="toggleDSBlock('${sid}')" title="Drop set">DS</button>
     <button class="icon-btn rip-btn" id="rip-${sid}" onclick="toggleRIPBlock('${sid}')" title="Failed / RIP set">RIP</button>
-    <button class="icon-btn del-btn" onclick="this.closest('.set-row').remove()">✕</button>`;
+    <button class="icon-btn del-btn" onclick="removeSetRow(this)">✕</button>`;
   body.appendChild(row);
   // Create the weight-PR hint element right below the row (hidden by default)
   const hintDiv = document.createElement("div");
@@ -2733,6 +2742,32 @@ function deleteEditSet(i) {
     ripBtn.setAttribute("onclick", `toggleEditRIP(${newI})`);
     row.querySelector(".edit-set-del").setAttribute("onclick", `deleteEditSet(${newI})`);
   });
+  // Immediately persist the set deletion so it doesn't require "Save Changes"
+  if (editTargetIdx >= 0 && workouts[editTargetIdx]) {
+    const sets = [];
+    rows.forEach((row, idx) => {
+      const weight  = parseFloat(document.getElementById(`ew-${idx}`)?.value) || 0;
+      const reps    = parseInt(document.getElementById(`er-${idx}`)?.value)   || 0;
+      const note    = document.getElementById(`en-${idx}`)?.value?.trim() || "";
+      const dropSet = document.getElementById(`eds-${idx}`)?.classList.contains("active") || false;
+      const failSet = document.getElementById(`eri-${idx}`)?.classList.contains("active") || false;
+      if (reps > 0) sets.push({ weight, reps, note, dropSet, failSet });
+    });
+    workouts[editTargetIdx].sets = sets;
+    saveAll();
+    showToast("🗑️ セット削除しました");
+    if (!sets.length) {
+      // No sets left — offer to delete the whole exercise entry
+      showConfirm("セットが0件です。この種目ごと削除しますか？", () => {
+        const idToDel = String(workouts[editTargetIdx]?.id || "");
+        workouts.splice(editTargetIdx, 1);
+        saveAll();
+        if (sbClient && sbUser && idToDel)
+          sbClient.from("workouts").delete().eq("id", idToDel).catch(() => {});
+        closeEditModal(); renderHistory();
+      }, "削除", "キャンセル");
+    }
+  }
 }
 
 function editAddSet() {
