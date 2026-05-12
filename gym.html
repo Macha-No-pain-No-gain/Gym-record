@@ -1997,7 +1997,10 @@ function populateBlockEx(bid) {
       const key = `${ppl}||${sub}`;
       (grouped[key] = grouped[key] || {ppl, sub, items:[]}).items.push(ex);
     });
-    Object.values(grouped).forEach(g => g.items.sort((a,b) => a.name.localeCompare(b.name)));
+    // Sort within each sub-group by most used, then alphabetically as tiebreaker
+    Object.values(grouped).forEach(g =>
+      g.items.sort((a,b) => (useCounts[b.name]||0) - (useCounts[a.name]||0) || a.name.localeCompare(b.name))
+    );
     PPL_ORDER.forEach(ppl => {
       if (pplFilter && ppl !== pplFilter) return;
       const knownSubs = PPL_SUBS[ppl] || [];
