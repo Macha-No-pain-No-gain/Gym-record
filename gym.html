@@ -763,9 +763,10 @@ select option,optgroup{background:var(--surface2);}
     </div>
     <div id="edit-sets-body"></div>
     <button onclick="editAddSet()" class="btn btn-ghost" style="width:100%;margin-top:6px;font-size:.82rem;">＋ Add Set</button>
-    <div class="modal-footer" style="margin-top:18px;">
+    <div class="modal-footer" style="margin-top:18px;flex-wrap:wrap;">
       <button class="btn btn-primary" onclick="saveEditModal()" style="flex:1;">Save Changes</button>
       <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="deleteWorkoutEntry()" style="width:100%;margin-top:8px;">🗑️ この種目を削除</button>
     </div>
   </div>
 </div>
@@ -2795,6 +2796,25 @@ function closeEditModal() {
   editTargetIdx = -1;
 }
 
+function deleteWorkoutEntry() {
+  if (editTargetIdx < 0 || !workouts[editTargetIdx]) return;
+  const w = workouts[editTargetIdx];
+  showConfirm(
+    `「${w.exercise}」(${formatDate(w.date)}) を削除しますか？`,
+    () => {
+      const idToDelete = String(w.id || "");
+      workouts.splice(editTargetIdx, 1);
+      saveAll();
+      if (sbClient && sbUser && idToDelete) {
+        sbClient.from("workouts").delete().eq("id", idToDelete).catch(() => {});
+      }
+      closeEditModal();
+      renderHistory();
+      showToast("🗑️ 削除しました");
+    }
+  );
+}
+
 // ─── PROGRESS TABS ───────────────────────────────────────────────────────────
 function showProgressTab(id, el) {
   document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
@@ -2909,9 +2929,43 @@ function renderVolumeTab() {
 // ─── PERFORMANCE CHARTS ───────────────────────────────────────────────────────
 function populateChartExercises() {
   const sel = document.getElementById("chart-ex"), cur = sel.value;
-  const names = [...new Set(workouts.map(w => w.exercise))].sort();
-  sel.innerHTML = '<option value="">— Choose exercise —</option>' +
-    names.map(n => `<option value="${n}"${n===cur?" selected":""}>${n}</option>`).join("");
+  const all  = getAllExercises();
+  const cats = ["weights","calisthenics","core","cardio"];
+  const catLabels = { weights:"Weights", calisthenics:"Calisthenics", core:"Core", cardio:"Cardio" };
+
+  // Count sessions per exercise for "most used" sort
+  const usageCount = {};
+  workouts.forEach(w => { usageCount[w.exercise] = (usageCount[w.exercise] || 0) + 1; });
+  const getCount = name => usageCount[name] || 0;
+
+  // Which exercises have at least one logged session
+  const logged = new Set(workouts.map(w => w.exercise));
+  // Exercises in history that are NOT in the master list (renamed / deleted custom)
+  const allNames = new Set(all.map(e => e.name));
+  const orphans  = [...logged].filter(n => !allNames.has(n))
+                              .sort((a,b) => getCount(b) - getCount(a));
+
+  let html = '<option value="">— Choose exercise —</option>';
+  cats.forEach(cat => {
+    const list = all.filter(e => e.cat === cat)
+                    .sort((a,b) => getCount(b.name) - getCount(a.name));
+    if (!list.length) return;
+    html += `<optgroup label="${catLabels[cat]}">`;
+    list.forEach(e => {
+      const sel_a = e.name === cur ? " selected" : "";
+      const dot   = logged.has(e.name) ? " ●" : "";
+      html += `<option value="${e.name}"${sel_a}>${e.name}${dot}</option>`;
+    });
+    html += "</optgroup>";
+  });
+  if (orphans.length) {
+    html += '<optgroup label="Other (Logged)">';
+    orphans.forEach(n => {
+      html += `<option value="${n}"${n===cur?" selected":""}>${n} ●</option>`;
+    });
+    html += "</optgroup>";
+  }
+  sel.innerHTML = html;
 }
 
 function renderPerfChart() {
