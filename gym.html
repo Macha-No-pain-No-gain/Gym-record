@@ -671,6 +671,11 @@ select option,optgroup{background:var(--surface2);}
           </label>
         </div>
         <button class="btn btn-ghost" onclick="testAlarm()" style="margin-top:14px;width:100%;font-size:.82rem;">▶ Test Alarm</button>
+        <div id="notif-section" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+          <div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">📲 バックグラウンド通知（スマホ向け）</div>
+          <div id="notif-status" style="font-size:.78rem;color:var(--muted);margin-bottom:8px;"></div>
+          <button class="btn btn-ghost" id="notif-btn" onclick="requestNotifPermission()" style="width:100%;font-size:.82rem;">🔔 通知を許可する</button>
+        </div>
       </div>
 
       <!-- Language & Tutorial -->
@@ -3517,6 +3522,7 @@ function startTimer(){
       pauseTimer();
       localStorage.removeItem("gymlog_timer_end");
       playBeep(); playMotivationSound();
+      notifyTimerDone();
       showToast("Rest time's up! 💪");
       timerCloseTimeout = setTimeout(closeTimer, 3000);
     }
@@ -3826,6 +3832,62 @@ function exportCSV() {
   a.download = `gymlog_${today()}.csv`;
   a.click();
   showToast("CSV exported!");
+}
+
+// ── Push Notification (background timer alert) ────────────────────────────────
+let _swReg = null;
+
+// Register service worker once on load
+(async function initSW() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    _swReg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+  } catch(e) {}
+  updateNotifUI();
+})();
+
+function updateNotifUI() {
+  const statusEl = document.getElementById("notif-status");
+  const btn      = document.getElementById("notif-btn");
+  if (!statusEl || !btn) return;
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    statusEl.textContent = "このブラウザは通知をサポートしていません";
+    btn.style.display = "none";
+    return;
+  }
+  if (Notification.permission === "granted") {
+    statusEl.textContent = "✅ 通知が有効です — バックグラウンドでタイマーが終わると通知が届きます";
+    btn.style.display = "none";
+  } else if (Notification.permission === "denied") {
+    statusEl.textContent = "❌ 通知がブロックされています — ブラウザの設定から許可してください";
+    btn.style.display = "none";
+  } else {
+    statusEl.textContent = "アプリが背面にある時にタイマー終了を通知できます";
+    btn.textContent = "🔔 通知を許可する";
+    btn.style.display = "block";
+  }
+}
+
+async function requestNotifPermission() {
+  if (!('Notification' in window)) return;
+  const perm = await Notification.requestPermission();
+  updateNotifUI();
+  if (perm === "granted") showToast("🔔 通知が有効になりました！");
+}
+
+async function notifyTimerDone() {
+  if (!document.hidden) return;            // page visible → audio is enough
+  if (Notification.permission !== "granted") return;
+  const reg = _swReg || (await navigator.serviceWorker.ready.catch(() => null));
+  if (!reg) return;
+  try {
+    await reg.showNotification("⏱ Rest完了！", {
+      body: "次のセットを始めましょう 💪",
+      tag:  "gym-timer",          // replaces previous notification
+      renotify: true,
+      requireInteraction: false,
+    });
+  } catch(e) {}
 }
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
