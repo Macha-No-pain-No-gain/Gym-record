@@ -146,8 +146,17 @@ select option,optgroup{background:var(--surface2);}
 /* Block info: previous session + PR */
 .ex-info{border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:.78rem;display:none;background:linear-gradient(135deg,rgba(108,99,255,.06),rgba(251,191,36,.04));border:1px solid rgba(108,99,255,.15);}
 .ex-info.visible{display:block;}
-.ex-pr-line{color:var(--gold);font-weight:700;margin-bottom:3px;font-size:.8rem;}
+.ex-pr-line{color:var(--gold);font-weight:700;margin-bottom:5px;font-size:.8rem;}
 .ex-last-line{color:var(--muted);line-height:1.5;}
+.ex-hist-date{font-size:.75rem;color:var(--accent);font-weight:700;margin-bottom:3px;}
+.ex-hist-set-row{display:grid;grid-template-columns:18px 58px 42px 1fr;gap:2px 6px;font-size:.77rem;color:var(--text);padding:1px 0;}
+.ex-hist-set-row .sn{color:var(--muted);font-size:.7rem;}
+.ex-hist-set-row .sw{font-weight:700;}
+.ex-hist-set-row .tag{font-size:.68rem;color:var(--muted);}
+.ex-hist-sets{margin-bottom:6px;}
+.ex-hist-toggle{background:none;border:1px solid rgba(108,99,255,.25);border-radius:6px;color:var(--accent);font-size:.72rem;cursor:pointer;padding:3px 9px;margin-top:4px;width:100%;text-align:left;}
+.ex-hist-older{margin-top:6px;border-top:1px dashed rgba(108,99,255,.15);padding-top:6px;}
+.ex-hist-older-row{font-size:.73rem;color:var(--muted);padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04);}
 .set-rm-line{font-size:.68rem;color:var(--accent);opacity:.8;padding:1px 0 4px 39px;}
 .set-pr-hint{font-size:.73rem;padding:1px 0 4px 39px;}
 .set-pr-hint.achievable{color:var(--gold);}
@@ -2030,31 +2039,73 @@ function updateBlockInfo(bid) {
   const exName = document.getElementById(`exname-${bid}`)?.value;
   const info = document.getElementById(`info-${bid}`);
   if (!info) return;
-  if (!exName) { info.classList.remove("visible"); info.innerHTML=""; return; }
+  if (!exName) { info.classList.remove("visible"); info.innerHTML = ""; return; }
 
   const all = workouts.filter(w => w.exercise === exName);
-  if (!all.length) { info.classList.remove("visible"); info.innerHTML=""; return; }
+  if (!all.length) { info.classList.remove("visible"); info.innerHTML = ""; return; }
 
   // PR
-  const pr = Math.max(...all.flatMap(w => w.sets.filter(s=>!s.dropSet&&!s.failSet).map(s=>calc1RM(s.weight,s.reps))), 0);
-  const prDate = all.filter(w => w.sets.some(s=>!s.dropSet&&!s.failSet&&Math.abs(calc1RM(s.weight,s.reps)-pr)<0.01))
-                    .map(w=>w.date).sort().pop();
+  const pr = Math.max(...all.flatMap(w => w.sets.filter(s => !s.dropSet && !s.failSet).map(s => calc1RM(s.weight, s.reps))), 0);
+  const prDate = all.filter(w => w.sets.some(s => !s.dropSet && !s.failSet && Math.abs(calc1RM(s.weight, s.reps) - pr) < 0.01))
+                    .map(w => w.date).sort().pop();
 
-  // Last session (most recent date)
-  const lastDate = [...new Set(all.map(w=>w.date))].sort().pop();
-  const lastSets = all.filter(w=>w.date===lastDate).flatMap(w=>w.sets);
-  const lastStr  = lastSets.map(s=>(s.failSet?"[RIP]":(s.dropSet?"↓":""))+s.weight+"×"+s.reps).join("  ");
-  const lastVol  = lastSets.reduce((a,s) => a + s.weight*s.reps, 0);
-  const restSec  = getRestTime(exName);
-  const restStr  = restSec >= 60 ? `${Math.floor(restSec/60)}m${restSec%60?""+restSec%60+"s":""}` : `${restSec}s`;
+  // Group by date, sorted newest first
+  const dates = [...new Set(all.map(w => w.date))].sort((a, b) => b.localeCompare(a));
+  const restSec = getRestTime(exName);
+  const restStr = restSec >= 60 ? `${Math.floor(restSec/60)}m${restSec%60?restSec%60+"s":""}` : `${restSec}s`;
+
+  // Build set rows for one date
+  const renderSets = (date) => {
+    const sets = all.filter(w => w.date === date).flatMap(w => w.sets);
+    const vol  = sets.reduce((a, s) => a + s.weight * s.reps, 0);
+    const rows = sets.map((s, i) => {
+      const tag = s.failSet ? '<span class="tag">[RIP]</span>' : s.dropSet ? '<span class="tag">↓DS</span>' : '';
+      return `<div class="ex-hist-set-row">
+        <span class="sn">${i+1}</span>
+        <span class="sw">${s.weight}kg</span>
+        <span>×${s.reps}</span>
+        ${tag}
+      </div>`;
+    }).join("");
+    return { rows, vol };
+  };
+
+  // Most recent session — always shown
+  const { rows: lastRows, vol: lastVol } = renderSets(dates[0]);
+
+  // Older sessions — compact one-liner each, collapsed by default
+  let olderHtml = "";
+  if (dates.length > 1) {
+    olderHtml = dates.slice(1).map(d => {
+      const sets = all.filter(w => w.date === d).flatMap(w => w.sets);
+      const line = sets.map(s => (s.failSet?"[RIP]":s.dropSet?"↓":"")+s.weight+"×"+s.reps).join("  ");
+      return `<div class="ex-hist-older-row"><span style="color:var(--accent);font-weight:700;">${formatDate(d,true)}</span>　${line}</div>`;
+    }).join("");
+  }
 
   info.innerHTML = `
-    ${pr>0?`<div class="ex-pr-line">🏆 PR: ${pr.toFixed(1)} kg 1RM${prDate?" — "+formatDate(prDate,true):""}</div>`:""}
-    <div class="ex-last-line">📅 Last (${formatDate(lastDate,true)}): ${lastStr}</div>
-    <div style="font-size:.75rem;color:var(--green);margin-top:3px;font-weight:600;">📊 Last Vol: ${lastVol.toFixed(0)} kg</div>
-    <div style="font-size:.7rem;color:rgba(108,99,255,.6);margin-top:2px;">⏱ Rest: ${restStr}</div>`;
+    ${pr > 0 ? `<div class="ex-pr-line">🏆 PR: ${pr.toFixed(1)} kg 1RM${prDate ? " — " + formatDate(prDate, true) : ""}</div>` : ""}
+    <div style="font-size:.7rem;color:rgba(108,99,255,.6);margin-bottom:6px;">⏱ Rest: ${restStr}</div>
+    <div class="ex-hist-date">📅 ${formatDate(dates[0], true)}　<span style="color:var(--green);font-weight:600;">Vol ${lastVol.toFixed(0)}kg</span></div>
+    <div class="ex-hist-sets">${lastRows}</div>
+    ${dates.length > 1 ? `
+      <button class="ex-hist-toggle" onclick="toggleExHistory('${bid}')">▶ 過去の記録 (${dates.length - 1}件)</button>
+      <div class="ex-hist-older" id="ex-hist-${bid}" style="display:none;">${olderHtml}</div>
+    ` : ""}`;
+
   info.classList.add("visible");
   updatePRSuggest(bid);
+}
+
+function toggleExHistory(bid) {
+  const el  = document.getElementById(`ex-hist-${bid}`);
+  const btn = el?.previousElementSibling;
+  if (!el) return;
+  const open = el.style.display === "none";
+  el.style.display  = open ? "block" : "none";
+  if (btn) btn.textContent = open
+    ? `▼ 過去の記録 (${el.querySelectorAll(".ex-hist-older-row").length}件)`
+    : `▶ 過去の記録 (${el.querySelectorAll(".ex-hist-older-row").length}件)`;
 }
 
 // filterBlockEx and searchBlockEx now unified into populateBlockEx
